@@ -1,0 +1,623 @@
+{
+  "image_id": "wall_example.jpg",
+  "climber_height": "5'10\"",
+  "wingspan_inches": 70,
+  "holds": [
+    "contour_0",
+    "contour_1",
+    "contour_2",
+    "contour_3",
+    "contour_4",
+    "contour_5",
+    "contour_6",
+    "contour_7",
+    "contour_8",
+    "contour_9",
+    "contour_10"
+  ],
+  "moves": [
+    {
+      "type": "start",
+      "lefthand": "contour_5",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_4",
+      "righthand": "contour_6",
+      "leftfoot": "contour_0",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_4",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_4",
+      "righthand": "contour_6",
+      "leftfoot": "contour_0",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_4",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_4",
+      "righthand": "contour_5",
+      "leftfoot": "contour_0",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_4",
+      "righthand": "hanging",
+      "leftfoot": "contour_0",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_4",
+      "righthand": "contour_5",
+      "leftfoot": "contour_0",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_5",
+      "leftfoot": "contour_0",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_0",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_5",
+      "leftfoot": "contour_0",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_0",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_5",
+      "leftfoot": "contour_0",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_0",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "smear",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_0",
+      "rightfoot": "contour_0"
+    },
+    {
+      "type": "smear",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_0",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_1",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "smear",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "smear",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_1",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "smear",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_1",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "smear",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_1",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "smear",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_1",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "smear",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_1",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_1",
+      "rightfoot": "contour_2"
+    },
+    {
+      "type": "smear",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_2"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_7",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_2"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_7",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_7",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_7",
+      "righthand": "contour_6",
+      "leftfoot": "contour_1",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_7",
+      "righthand": "contour_6",
+      "leftfoot": "contour_1",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_7",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_7",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_7",
+      "righthand": "contour_6",
+      "leftfoot": "contour_1",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_7",
+      "righthand": "contour_6",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_7",
+      "righthand": "contour_6",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_6",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "hanging",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_7",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_7",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_7",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_9",
+      "righthand": "contour_7",
+      "leftfoot": "contour_3",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_1"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "hanging"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "contour_3",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_9",
+      "righthand": "contour_8",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_8",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_7",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_8",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "hanging",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_10",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_10",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_10",
+      "leftfoot": "contour_5",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_9",
+      "righthand": "contour_10",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_10",
+      "leftfoot": "contour_5",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_9",
+      "righthand": "contour_10",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_3"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_10",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_4"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_10",
+      "leftfoot": "contour_4",
+      "rightfoot": "contour_5"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_10",
+      "leftfoot": "contour_4",
+      "rightfoot": "contour_6"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_10",
+      "leftfoot": "contour_5",
+      "rightfoot": "contour_6"
+    },
+    {
+      "type": "smear",
+      "lefthand": "contour_9",
+      "righthand": "contour_10",
+      "leftfoot": "hanging",
+      "rightfoot": "contour_6"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_9",
+      "righthand": "contour_10",
+      "leftfoot": "contour_5",
+      "rightfoot": "contour_6"
+    },
+    {
+      "type": "reach",
+      "lefthand": "contour_7",
+      "righthand": "contour_10",
+      "leftfoot": "contour_5",
+      "rightfoot": "contour_6"
+    },
+    {
+      "type": "reach",
+      "lefthand": "hanging",
+      "righthand": "contour_10",
+      "leftfoot": "contour_5",
+      "rightfoot": "contour_6"
+    }
+  ],
+  "grade": "V4"
+}
