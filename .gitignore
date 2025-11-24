@@ -1,0 +1,80 @@
+# ===========================================
+# Python virtual environments
+# ===========================================
+venv/
+.env/
+.venv/
+
+# ===========================================
+# Python cache files
+# ===========================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.pkl
+*.pickle
+
+# ===========================================
+# Build / packaging / test artifacts
+# ===========================================
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+
+# ===========================================
+# Jupyter & tmp files
+# ===========================================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+*.swp
+*~
+
+# ===========================================
+# IDE / editor settings
+# ===========================================
+.vscode/
+.idea/
+*.code-workspace
+
+# ===========================================
+# Logs / output
+# ===========================================
+*.log
+output/
+logs/
+
+# ===========================================
+# Machine learning models / weights
+# (unless you want them in Git)
+# ===========================================
+*.h5
+*.hdf5
+*.keras
+*.ckpt
+*.pb
+saved_models/
+
+# ===========================================
+# Dataset files
+# YOU DO NOT WANT TO COMMIT RAW IMAGES
+# ===========================================
+move_classifier/move_dataset/
+move_classifier/move_pose_dataset.npz
+
+# ===========================================
+# Temporary / system files
+# ===========================================
+Thumbs.db
+.DS_Store
+
+# ===========================================
+# Libraries TensorFlow installs
+# ===========================================
+*.dll
+*.so
+*.dylib
+*.pyd
