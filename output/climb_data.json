@@ -1,623 +1,765 @@
 {
-  "image_id": "wall_example.jpg",
-  "climber_height": "5'10\"",
-  "wingspan_inches": 70,
-  "holds": [
-    "contour_0",
-    "contour_1",
-    "contour_2",
-    "contour_3",
-    "contour_4",
-    "contour_5",
-    "contour_6",
-    "contour_7",
-    "contour_8",
-    "contour_9",
-    "contour_10"
-  ],
+  "video_path": "Vids\\climbVid2.mov",
   "moves": [
     {
-      "type": "start",
-      "lefthand": "contour_5",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_0"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_4",
-      "righthand": "contour_6",
-      "leftfoot": "contour_0",
-      "rightfoot": "contour_0"
-    },
-    {
+      "frame_index": 1,
       "type": "smear",
-      "lefthand": "contour_4",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_0"
+      "confidence": 0.7034847140312195,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "contour_0",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.24206863343715668,
+        0.014709034003317356,
+        0.014564932323992252,
+        0.023913083598017693,
+        0.7034847140312195,
+        0.0012593313585966825,
+        2.8679019692390284e-07
+      ]
     },
     {
-      "type": "reach",
-      "lefthand": "contour_4",
-      "righthand": "contour_6",
-      "leftfoot": "contour_0",
-      "rightfoot": "contour_0"
-    },
-    {
+      "frame_index": 31,
       "type": "smear",
-      "lefthand": "contour_4",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_0"
+      "confidence": 0.651667058467865,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "contour_0",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.3088854253292084,
+        0.007821369916200638,
+        0.01164912711828947,
+        0.01876104809343815,
+        0.651667058467865,
+        0.0012159477919340134,
+        5.223834520506898e-08
+      ]
     },
     {
-      "type": "reach",
-      "lefthand": "contour_4",
-      "righthand": "contour_5",
-      "leftfoot": "contour_0",
-      "rightfoot": "contour_0"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_4",
-      "righthand": "hanging",
-      "leftfoot": "contour_0",
-      "rightfoot": "contour_0"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_4",
-      "righthand": "contour_5",
-      "leftfoot": "contour_0",
-      "rightfoot": "contour_0"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_5",
-      "leftfoot": "contour_0",
-      "rightfoot": "contour_0"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_0",
-      "rightfoot": "contour_0"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_5",
-      "leftfoot": "contour_0",
-      "rightfoot": "contour_0"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_0",
-      "rightfoot": "contour_0"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_5",
-      "leftfoot": "contour_0",
-      "rightfoot": "contour_0"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_0",
-      "rightfoot": "contour_0"
-    },
-    {
+      "frame_index": 61,
       "type": "smear",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_0"
+      "confidence": 0.7091476321220398,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "contour_0",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.2518951892852783,
+        0.007305153179913759,
+        0.010276359505951405,
+        0.020071495324373245,
+        0.7091476321220398,
+        0.0013040639460086823,
+        8.746574309270727e-08
+      ]
     },
     {
+      "frame_index": 84,
       "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_0",
-      "rightfoot": "contour_0"
+      "confidence": 0.4534846842288971,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "contour_0",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.4534846842288971,
+        0.029039476066827774,
+        0.027225354686379433,
+        0.07902626693248749,
+        0.40535861253738403,
+        0.0058559090830385685,
+        9.6608355306671e-06
+      ]
     },
     {
+      "frame_index": 96,
+      "type": "reach",
+      "confidence": 0.4521198272705078,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "contour_0",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.4521198272705078,
+        0.021828163415193558,
+        0.024270085617899895,
+        0.08430597186088562,
+        0.41170117259025574,
+        0.005768951494246721,
+        5.863384558324469e-06
+      ]
+    },
+    {
+      "frame_index": 126,
+      "type": "reach",
+      "confidence": 0.4832981526851654,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.4832981526851654,
+        0.02257572114467621,
+        0.0273826215416193,
+        0.09185822308063507,
+        0.3707312047481537,
+        0.004152046516537666,
+        2.036311798292445e-06
+      ]
+    },
+    {
+      "frame_index": 156,
+      "type": "reach",
+      "confidence": 0.49665334820747375,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.49665334820747375,
+        0.020551446825265884,
+        0.024667635560035706,
+        0.08262176066637039,
+        0.37250033020973206,
+        0.003004136960953474,
+        1.3776572131973808e-06
+      ]
+    },
+    {
+      "frame_index": 186,
+      "type": "reach",
+      "confidence": 0.46508902311325073,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.46508902311325073,
+        0.015858910977840424,
+        0.02114761807024479,
+        0.09290372580289841,
+        0.4008501172065735,
+        0.004149115178734064,
+        1.4813444977335166e-06
+      ]
+    },
+    {
+      "frame_index": 216,
+      "type": "reach",
+      "confidence": 0.4585108458995819,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.4585108458995819,
+        0.008536327630281448,
+        0.014576585963368416,
+        0.10010430216789246,
+        0.3980911672115326,
+        0.02017977274954319,
+        1.0479982393007958e-06
+      ]
+    },
+    {
+      "frame_index": 318,
+      "type": "toe_hook",
+      "confidence": 0.4521762430667877,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.1121646910905838,
+        0.12452906370162964,
+        0.4521762430667877,
+        0.1855895072221756,
+        0.03655679151415825,
+        0.08861549943685532,
+        0.00036819238448515534
+      ]
+    },
+    {
+      "frame_index": 331,
+      "type": "toe_hook",
+      "confidence": 0.45152002573013306,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.11639715731143951,
+        0.1666826754808426,
+        0.45152002573013306,
+        0.16988849639892578,
+        0.04808800667524338,
+        0.04704712703824043,
+        0.00037658234941773117
+      ]
+    },
+    {
+      "frame_index": 368,
+      "type": "heel_hook",
+      "confidence": 0.45029643177986145,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.13463661074638367,
+        0.45029643177986145,
+        0.22973567247390747,
+        0.0993657037615776,
+        0.07680340111255646,
+        0.00814234372228384,
+        0.0010197978699579835
+      ]
+    },
+    {
+      "frame_index": 398,
+      "type": "heel_hook",
+      "confidence": 0.6648191809654236,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.07722517102956772,
+        0.6648191809654236,
+        0.15205033123493195,
+        0.05528923124074936,
+        0.046460945159196854,
+        0.003065007273107767,
+        0.0010900754714384675
+      ]
+    },
+    {
+      "frame_index": 428,
+      "type": "heel_hook",
+      "confidence": 0.5485010743141174,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.10137168318033218,
+        0.5485010743141174,
+        0.20915935933589935,
+        0.06910747289657593,
+        0.06823563575744629,
+        0.0029217256233096123,
+        0.0007030200213193893
+      ]
+    },
+    {
+      "frame_index": 458,
+      "type": "heel_hook",
+      "confidence": 0.5195671916007996,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.12487160414457321,
+        0.5195671916007996,
+        0.15471389889717102,
+        0.06955917924642563,
+        0.1284186840057373,
+        0.002409104024991393,
+        0.00046033356920816004
+      ]
+    },
+    {
+      "frame_index": 563,
       "type": "smear",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_0",
-      "rightfoot": "hanging"
+      "confidence": 0.46362555027008057,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.19513922929763794,
+        0.2079053670167923,
+        0.053907040506601334,
+        0.07685058563947678,
+        0.46362555027008057,
+        0.0024726034607738256,
+        9.963982301997021e-05
+      ]
     },
     {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_1",
-      "rightfoot": "hanging"
-    },
-    {
+      "frame_index": 593,
       "type": "smear",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_1"
+      "confidence": 0.590941309928894,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.16632580757141113,
+        0.16486673057079315,
+        0.028848223388195038,
+        0.04681150242686272,
+        0.590941309928894,
+        0.0021574245765805244,
+        4.905494279228151e-05
+      ]
     },
     {
+      "frame_index": 623,
       "type": "smear",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_1",
-      "rightfoot": "hanging"
+      "confidence": 0.5827396512031555,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.18854716420173645,
+        0.14527615904808044,
+        0.028737887740135193,
+        0.05239139124751091,
+        0.5827396512031555,
+        0.00225957203656435,
+        4.824902134714648e-05
+      ]
     },
     {
+      "frame_index": 653,
       "type": "smear",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "hanging"
+      "confidence": 0.6137160062789917,
+      "assignments": {
+        "lefthand": "contour_3",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.1954723298549652,
+        0.11685201525688171,
+        0.023670168593525887,
+        0.04781278595328331,
+        0.6137160062789917,
+        0.0024335018824785948,
+        4.323869870859198e-05
+      ]
     },
     {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_1",
-      "rightfoot": "hanging"
-    },
-    {
+      "frame_index": 683,
       "type": "smear",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "hanging"
+      "confidence": 0.630884051322937,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.24080245196819305,
+        0.05923593044281006,
+        0.017430871725082397,
+        0.05022585391998291,
+        0.630884051322937,
+        0.0014080697437748313,
+        1.2754901945299935e-05
+      ]
     },
     {
+      "frame_index": 694,
       "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_1"
+      "confidence": 0.45866021513938904,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.45866021513938904,
+        0.0788022130727768,
+        0.043655429035425186,
+        0.09470657259225845,
+        0.32306092977523804,
+        0.0010929672280326486,
+        2.169698018406052e-05
+      ]
     },
     {
+      "frame_index": 724,
       "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_1",
-      "rightfoot": "contour_1"
+      "confidence": 0.5039151906967163,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.5039151906967163,
+        0.06486192345619202,
+        0.04769548401236534,
+        0.09129940718412399,
+        0.2916359305381775,
+        0.0005853436305187643,
+        6.73278009344358e-06
+      ]
     },
     {
-      "type": "smear",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_1"
-    },
-    {
+      "frame_index": 754,
       "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_1",
-      "rightfoot": "contour_1"
+      "confidence": 0.5016708970069885,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.5016708970069885,
+        0.06343377381563187,
+        0.053513940423727036,
+        0.09708019345998764,
+        0.28377988934516907,
+        0.0005160058499313891,
+        5.221605988481315e-06
+      ]
     },
     {
-      "type": "smear",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_1",
-      "rightfoot": "hanging"
-    },
-    {
+      "frame_index": 784,
       "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_1",
-      "rightfoot": "contour_2"
+      "confidence": 0.5116469860076904,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.5116469860076904,
+        0.06736450642347336,
+        0.05408835411071777,
+        0.09527792781591415,
+        0.27107861638069153,
+        0.0005380802904255688,
+        5.62151535632438e-06
+      ]
     },
     {
-      "type": "smear",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_2"
-    },
-    {
+      "frame_index": 814,
       "type": "reach",
-      "lefthand": "contour_7",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_2"
+      "confidence": 0.47615158557891846,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.47615158557891846,
+        0.06894879043102264,
+        0.06647398322820663,
+        0.1161690503358841,
+        0.27169564366340637,
+        0.0005559795536100864,
+        5.0343664952379186e-06
+      ]
     },
     {
-      "type": "smear",
-      "lefthand": "contour_7",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "hanging"
-    },
-    {
+      "frame_index": 844,
       "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "hanging"
+      "confidence": 0.47409647703170776,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.47409647703170776,
+        0.059041786938905716,
+        0.05051576718688011,
+        0.11105531454086304,
+        0.3047282099723816,
+        0.0005580100696533918,
+        4.475039077078691e-06
+      ]
     },
     {
+      "frame_index": 874,
       "type": "reach",
-      "lefthand": "contour_7",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "hanging"
+      "confidence": 0.4817221760749817,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.4817221760749817,
+        0.04997716844081879,
+        0.04556530341506004,
+        0.1068558320403099,
+        0.31532785296440125,
+        0.0005474059726111591,
+        4.190791969449492e-06
+      ]
     },
     {
+      "frame_index": 904,
       "type": "reach",
-      "lefthand": "contour_7",
-      "righthand": "contour_6",
-      "leftfoot": "contour_1",
-      "rightfoot": "hanging"
+      "confidence": 0.4584602117538452,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.4584602117538452,
+        0.04986429959535599,
+        0.04460493475198746,
+        0.11084076017141342,
+        0.33556658029556274,
+        0.0006573245627805591,
+        5.911889729759423e-06
+      ]
     },
     {
+      "frame_index": 934,
       "type": "reach",
-      "lefthand": "contour_7",
-      "righthand": "contour_6",
-      "leftfoot": "contour_1",
-      "rightfoot": "contour_1"
+      "confidence": 0.5140119194984436,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "contour_2"
+      },
+      "move_probs": [
+        0.5140119194984436,
+        0.07588348537683487,
+        0.09698513150215149,
+        0.12039506435394287,
+        0.19095824658870697,
+        0.001718931715004146,
+        4.7172703489195555e-05
+      ]
     },
     {
-      "type": "smear",
-      "lefthand": "contour_7",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_1"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_7",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "hanging"
-    },
-    {
+      "frame_index": 964,
       "type": "reach",
-      "lefthand": "contour_7",
-      "righthand": "contour_6",
-      "leftfoot": "contour_1",
-      "rightfoot": "contour_1"
+      "confidence": 0.522692859172821,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.522692859172821,
+        0.05972076952457428,
+        0.1183745339512825,
+        0.10822202265262604,
+        0.18986575305461884,
+        0.001092318445444107,
+        3.1731960916658863e-05
+      ]
     },
     {
-      "type": "smear",
-      "lefthand": "contour_7",
-      "righthand": "contour_6",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_1"
-    },
-    {
+      "frame_index": 994,
       "type": "reach",
-      "lefthand": "contour_7",
-      "righthand": "contour_6",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
+      "confidence": 0.5014219284057617,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_0",
+        "rightfoot": "hanging"
+      },
+      "move_probs": [
+        0.5014219284057617,
+        0.06704744696617126,
+        0.13256177306175232,
+        0.11285319179296494,
+        0.18488866090774536,
+        0.001187825808301568,
+        3.921191819244996e-05
+      ]
     },
     {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_6",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
+      "frame_index": 1136,
+      "type": "toe_hook",
+      "confidence": 0.4527059495449066,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "contour_4",
+        "rightfoot": "contour_0"
+      },
+      "move_probs": [
+        0.08717694878578186,
+        0.33799800276756287,
+        0.4527059495449066,
+        0.09092013537883759,
+        0.028786389157176018,
+        0.002088018227368593,
+        0.0003245775296818465
+      ]
     },
     {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "hanging",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
+      "frame_index": 1166,
+      "type": "toe_hook",
+      "confidence": 0.5079196691513062,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "contour_0"
+      },
+      "move_probs": [
+        0.020787639543414116,
+        0.4167928397655487,
+        0.5079196691513062,
+        0.04718274623155594,
+        0.006090219132602215,
+        0.001000528922304511,
+        0.00022626847203355283
+      ]
     },
     {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
+      "frame_index": 1196,
+      "type": "toe_hook",
+      "confidence": 0.47012144327163696,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "contour_0"
+      },
+      "move_probs": [
+        0.024212582036852837,
+        0.4489302337169647,
+        0.47012144327163696,
+        0.04818116873502731,
+        0.00726902624592185,
+        0.0010277667315676808,
+        0.00025785903562791646
+      ]
     },
     {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_7",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
+      "frame_index": 1219,
+      "type": "heel_hook",
+      "confidence": 0.46166813373565674,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "contour_0"
+      },
+      "move_probs": [
+        0.026367902755737305,
+        0.46166813373565674,
+        0.4572124481201172,
+        0.04529714211821556,
+        0.008248344995081425,
+        0.0009471852099522948,
+        0.00025885674403980374
+      ]
     },
     {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
+      "frame_index": 1249,
+      "type": "heel_hook",
+      "confidence": 0.500717282295227,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "contour_0"
+      },
+      "move_probs": [
+        0.03042466752231121,
+        0.500717282295227,
+        0.4186818301677704,
+        0.039010751992464066,
+        0.009915628470480442,
+        0.0009496639831922948,
+        0.0003001646837219596
+      ]
     },
     {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_7",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
+      "frame_index": 1279,
+      "type": "heel_hook",
+      "confidence": 0.5240962505340576,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "contour_1"
+      },
+      "move_probs": [
+        0.08596660196781158,
+        0.5240962505340576,
+        0.3138100206851959,
+        0.0379268154501915,
+        0.03676372393965721,
+        0.0012030485086143017,
+        0.00023343911743722856
+      ]
     },
     {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "hanging"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_7",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_9",
-      "righthand": "contour_7",
-      "leftfoot": "contour_3",
-      "rightfoot": "hanging"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "hanging"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "hanging"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_1"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "hanging"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "contour_3",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_9",
-      "righthand": "contour_8",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_8",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_7",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_8",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "hanging",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_10",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_10",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_10",
-      "leftfoot": "contour_5",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_9",
-      "righthand": "contour_10",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_10",
-      "leftfoot": "contour_5",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_9",
-      "righthand": "contour_10",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_3"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_10",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_4"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_10",
-      "leftfoot": "contour_4",
-      "rightfoot": "contour_5"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_10",
-      "leftfoot": "contour_4",
-      "rightfoot": "contour_6"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_10",
-      "leftfoot": "contour_5",
-      "rightfoot": "contour_6"
-    },
-    {
-      "type": "smear",
-      "lefthand": "contour_9",
-      "righthand": "contour_10",
-      "leftfoot": "hanging",
-      "rightfoot": "contour_6"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_9",
-      "righthand": "contour_10",
-      "leftfoot": "contour_5",
-      "rightfoot": "contour_6"
-    },
-    {
-      "type": "reach",
-      "lefthand": "contour_7",
-      "righthand": "contour_10",
-      "leftfoot": "contour_5",
-      "rightfoot": "contour_6"
-    },
-    {
-      "type": "reach",
-      "lefthand": "hanging",
-      "righthand": "contour_10",
-      "leftfoot": "contour_5",
-      "rightfoot": "contour_6"
+      "frame_index": 1309,
+      "type": "heel_hook",
+      "confidence": 0.5870352983474731,
+      "assignments": {
+        "lefthand": "hanging",
+        "righthand": "hanging",
+        "leftfoot": "hanging",
+        "rightfoot": "contour_1"
+      },
+      "move_probs": [
+        0.07020788639783859,
+        0.5870352983474731,
+        0.28327181935310364,
+        0.030293747782707214,
+        0.028006555512547493,
+        0.0009352224878966808,
+        0.00024945626500993967
+      ]
     }
-  ],
-  "grade": "V4"
+  ]
 }
