@@ -126,4 +126,4 @@ def detect_holds_from_video(video_path: str, ref_lab: np.ndarray, ref_hsv: np.nd
 if __name__ == "__main__":
     sample_lab = np.array([147, 108, 124])
     sample_hsv = np.array([88, 101, 149])
-    detect_holds_from_video("Vids/climbVid.mov", sample_lab, sample_hsv)
+    detect_holds_from_video("Vids/climbVid2.mov", sample_lab, sample_hsv)
