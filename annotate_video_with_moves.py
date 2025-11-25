@@ -1,101 +1,83 @@
 # annotate_video_with_moves.py
 #
-# Create a new video with the model's predicted move type
-# overlaid on each frame.
+# Create an annotated video from climb_data.json moves.
 
-import argparse
+import json
 from pathlib import Path
 
 import cv2
-import numpy as np
-import mediapipe as mp
-from move_classifier.model_inference import PoseMoveClassifier
 
 
-def annotate_video(
-    video_path: Path,
-    output_path: Path,
-    min_confidence: float = 0.4,
+def annotate_video_with_moves(
+    video_path: str,
+    climb_data_path: str,
+    output_path: str = "output/annotated_climb.mp4",
 ):
-    if not video_path.exists():
-        raise FileNotFoundError(f"Video not found: {video_path}")
+    video_path = Path(video_path)
+    climb_data_path = Path(climb_data_path)
+    output_path = Path(output_path)
+
+    if not climb_data_path.exists():
+        raise FileNotFoundError(f"climb_data.json not found: {climb_data_path}")
+
+    with climb_data_path.open("r", encoding="utf8") as f:
+        climb_data = json.load(f)
+
+    moves = climb_data.get("moves", [])
+    moves = sorted(moves, key=lambda m: m["frame_index"])
 
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
-        raise RuntimeError(f"Could not open video: {video_path}")
+        raise FileNotFoundError(f"Could not open video file: {video_path}")
 
     fps = cap.get(cv2.CAP_PROP_FPS)
     if fps <= 0:
-        fps = 30.0
+        fps = climb_data.get("fps", 30.0)
 
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    # Prepare video writer
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     writer = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
 
-    mp_pose = mp.solutions.pose
-    pose = mp_pose.Pose(
-        static_image_mode=False,
-        model_complexity=1,
-        enable_segmentation=False,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5,
-    )
-
-    classifier = PoseMoveClassifier()
+    print(f"Annotating video: {video_path}")
+    print(f"Using climb data: {climb_data_path}")
+    print(f"Saving annotated video to: {output_path}")
 
     frame_idx = 0
-
-    print(f"Annotating video: {video_path}")
-    print(f"Saving to: {output_path}")
+    move_idx = 0
+    current_label = "none"
+    current_conf = 0.0
 
     while True:
-        ret, frame = cap.read()
-        if not ret:
+        ok, frame = cap.read()
+        if not ok:
             break
 
         frame_idx += 1
-        image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = pose.process(image_rgb)
 
-        label_text = "no_pose"
-        conf_text = ""
-        color = (0, 0, 255)
+        # Advance move pointer if needed
+        while move_idx < len(moves) and frame_idx >= moves[move_idx]["frame_index"]:
+            m = moves[move_idx]
+            current_label = m["type"]
+            current_conf = m.get("confidence", 0.0)
+            move_idx += 1
 
-        if results.pose_landmarks:
-            landmarks = results.pose_landmarks.landmark
-            move_label, probs = classifier.predict_from_landmarks(landmarks)
-            top_conf = float(np.max(probs))
-
-            if top_conf >= min_confidence:
-                label_text = move_label
-                conf_text = f"{top_conf:.2f}"
-                color = (0, 255, 0)
-            else:
-                label_text = "low_conf"
-                conf_text = f"{top_conf:.2f}"
-                color = (0, 255, 255)
-
-        # Draw label and confidence
-        text = f"{label_text}"
-        if conf_text:
-            text += f" ({conf_text})"
+        label_text = f"{current_label}"
+        if current_label != "none":
+            label_text = f"Move: {current_label} ({current_conf:.2f})"
 
         cv2.putText(
             frame,
-            text,
+            label_text,
             (15, 35),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.9,
-            color,
+            (0, 255, 0),
             2,
             cv2.LINE_AA,
         )
-
-        # Optional frame index
         cv2.putText(
             frame,
             f"Frame {frame_idx}",
@@ -109,46 +91,31 @@ def annotate_video(
 
         writer.write(frame)
 
-        if frame_idx % 50 == 0:
-            print(f"Processed {frame_idx} frames")
-
     cap.release()
     writer.release()
-    pose.close()
 
-    print(f"Done. Annotated video saved to: {output_path}")
+    print("Done writing annotated video")
 
 
-def main():
+if __name__ == "__main__":
+    import argparse
+
     parser = argparse.ArgumentParser(
-        description="Annotate a climbing video with model predicted move types."
+        description="Create annotated climbing video from climb_data.json"
     )
+    parser.add_argument("--video", "-v", required=True, help="Path to video file")
     parser.add_argument(
-        "--video",
-        "-v",
-        required=True,
-        help="Path to input video file.",
+        "--data",
+        "-d",
+        default="output/climb_data.json",
+        help="Path to climb_data.json",
     )
     parser.add_argument(
         "--out",
         "-o",
         default="output/annotated_climb.mp4",
-        help="Path for output annotated video file.",
-    )
-    parser.add_argument(
-        "--min-conf",
-        type=float,
-        default=0.4,
-        help="Minimum confidence to trust a prediction.",
+        help="Output annotated video path",
     )
 
     args = parser.parse_args()
-
-    video_path = Path(args.video)
-    output_path = Path(args.out)
-
-    annotate_video(video_path, output_path, min_confidence=args.min_conf)
-
-
-if __name__ == "__main__":
-    main()
+    annotate_video_with_moves(args.video, args.data, args.out)
