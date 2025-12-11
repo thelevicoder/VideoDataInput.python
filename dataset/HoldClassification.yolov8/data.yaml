@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 6
+names: ['Crimp', 'Jug', 'Pinch', 'Pocket', 'Sloper', 'Volume']
+
+roboflow:
+  workspace: levis-ckimbgrade
+  project: holdclassificatore.v2-eu4e2
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/levis-ckimbgrade/holdclassificatore.v2-eu4e2/dataset/1

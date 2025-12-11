@@ -419,6 +419,7 @@ def build_holds_json_from_video(
     output_json: str = "output/hold_positions_auto.json",
     debug_image_out: str = "output/holds_debug.jpg",
     sample_frame_index: int = 0,  # unused, kept for compatibility
+    
 ) -> str:
     """
     Wrapper expected by run_climb_pipeline.py.
@@ -430,8 +431,13 @@ def build_holds_json_from_video(
         save_path=output_json,
         overlay_path=debug_image_out,
         composite_mask_path="output/hold_mask_composite.jpg",
+        
     )
+
+    
     return output_json
+
+    
 
 
 if __name__ == "__main__":
