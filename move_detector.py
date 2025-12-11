@@ -1,10 +1,19 @@
 # move_detector.py
 #
-# Offline move detection:
-# 1. First pass: run pose and assign limbs to holds for every frame.
-# 2. Segment each hand's timeline into stable "on hold" segments.
-# 3. Moves are transitions between stable hand segments with different holds.
-# 4. Second pass: classify each move frame with PoseMoveClassifier and save snapshots.
+# Geometry based move detection for training data.
+#
+# A move is recorded whenever a single limb (hand or foot) changes from one
+# detected hold ("contour_x") to another detected hold, after smoothing out
+# short jitter segments.
+#
+# Pipeline:
+#   1) First pass: for every frame run pose, assign each limb to nearest hold.
+#   2) For each limb, compress assignments into stable segments on each hold.
+#   3) Any transition seg_i.hold -> seg_{i+1}.hold (both real holds) is a move.
+#   4) Second pass: for each move frame, run classifier and save snapshot.
+#
+# This file is focused on generating clean, structured move data that can be
+# used as training labels for route grade prediction.
 
 import cv2
 import json
@@ -27,14 +36,16 @@ LIMB_LANDMARKS = {
     "rightfoot": POSE_LANDMARKS.RIGHT_ANKLE,
 }
 
-HANDS = ["lefthand", "righthand"]
+LIMBS = ["lefthand", "righthand", "leftfoot", "rightfoot"]
 
-# assignment and segmentation parameters
-ASSIGN_THRESHOLD = 60            # px, max distance hand to hold center
-MIN_SEGMENT_FRAMES = 3           # min frames on a hold to count as stable segment
-MERGE_MOVE_WINDOW_FRAMES = 3     # merge hand moves that happen within this many frames
-MIN_CONFIDENCE = 0.5             # classifier confidence
-MIN_HOLD_SWITCH_DIST = 10.0      # px center distance to consider it a real switch
+# Assignment parameters
+ASSIGN_THRESHOLD = 60          # max distance hand/foot to hold center in pixels
+MIN_SEG_FRAMES = 3             # min frames for a segment to be kept
+MIN_HOLD_SWITCH_DIST = 8.0     # min distance between hold centers to count as new hold
+
+# Classifier
+MIN_CONFIDENCE_FOR_TAG = 0.0   # never drop moves because of confidence
+LOW_CONFIDENCE_PREFIX = "uncertain_"
 
 
 def _compute_limb_positions(results, width: int, height: int) -> Dict[str, Tuple[int, int] | None]:
@@ -58,7 +69,10 @@ def _assign_limbs_to_holds(
     threshold: int = ASSIGN_THRESHOLD,
 ) -> Dict[str, str]:
     """
-    For each limb, assign nearest hold if within threshold. Otherwise "air" or "no_pose".
+    For each limb, assign nearest hold center if within threshold.
+    Otherwise:
+        "air"      - pose detected but not near any hold
+        "no_pose"  - pose missing for this limb
     """
     assignments: Dict[str, str] = {}
 
@@ -84,61 +98,80 @@ def _assign_limbs_to_holds(
 def _build_segments(assignments_series: List[Dict[str, str]], limb: str) -> List[Dict]:
     """
     Build raw segments for one limb:
-    [{ "hold": hold_id, "start": frame_idx0, "end": frame_idx1 }, ...]
-    using zero based frame indices.
+    [
+      { "hold": hold_id, "start": start_frame_idx0, "end": end_frame_idx0 },
+      ...
+    ]
+    with zero based indices.
     """
     segments: List[Dict] = []
-    current_hold: Optional[str] = None
-    start_idx: Optional[int] = None
 
-    for i, ass in enumerate(assignments_series):
-        val = ass.get(limb, "no_pose")
+    if not assignments_series:
+        return segments
 
-        if current_hold is None:
-            current_hold = val
-            start_idx = i
-            continue
+    current_hold = assignments_series[0][limb]
+    start_idx = 0
 
+    for i in range(1, len(assignments_series)):
+        val = assignments_series[i][limb]
         if val == current_hold:
             continue
 
-        # close current segment
         segments.append({"hold": current_hold, "start": start_idx, "end": i - 1})
         current_hold = val
         start_idx = i
 
-    if current_hold is not None and start_idx is not None:
-        segments.append({"hold": current_hold, "start": start_idx, "end": len(assignments_series) - 1})
-
+    segments.append({"hold": current_hold, "start": start_idx, "end": len(assignments_series) - 1})
     return segments
 
 
+def _filter_stable_segments(segments: List[Dict]) -> List[Dict]:
+    """
+    Keep only segments where:
+      - hold is a real contour
+      - segment length >= MIN_SEG_FRAMES
+    """
+    stable: List[Dict] = []
+    for seg in segments:
+        hold = seg["hold"]
+        length = seg["end"] - seg["start"] + 1
+        if hold in ("air", "no_pose"):
+            continue
+        if length < MIN_SEG_FRAMES:
+            continue
+        seg["length"] = length
+        stable.append(seg)
+    return stable
+
+
 def _hold_center(hold_id: str, holds: Dict[str, List[int]]) -> Optional[np.ndarray]:
-    if hold_id in ("air", "no_pose"):
-        return None
     coords = holds.get(hold_id)
     if coords is None:
         return None
     return np.array(coords, dtype=float)
 
 
-def _detect_hand_moves_from_segments(
-    segments_by_hand: Dict[str, List[Dict]],
+def _detect_moves_from_segments(
+    segments_by_limb: Dict[str, List[Dict]],
     holds: Dict[str, List[int]],
 ) -> List[Dict]:
     """
-    Given stable segments for each hand, produce raw move events:
-    [{ "frame_index": int (1 based), "limb": str, "from": hold_id, "to": hold_id }]
+    Produce one move per limb segment transition:
+    [
+      {
+        "frame_index": int (1 based),
+        "limb": "lefthand",
+        "from_hold": "contour_1",
+        "to_hold": "contour_3",
+        "hold_distance_px": float
+      },
+      ...
+    ]
     """
-    raw_events: List[Dict] = []
+    events: List[Dict] = []
 
-    for hand, segs in segments_by_hand.items():
-        if not segs:
-            continue
-
-        # sort just in case
+    for limb, segs in segments_by_limb.items():
         segs = sorted(segs, key=lambda s: s["start"])
-
         for i in range(len(segs) - 1):
             s1 = segs[i]
             s2 = segs[i + 1]
@@ -152,49 +185,29 @@ def _detect_hand_moves_from_segments(
             c2 = _hold_center(h2, holds)
             if c1 is not None and c2 is not None:
                 dist = float(np.linalg.norm(c1 - c2))
-                if dist < MIN_HOLD_SWITCH_DIST:
-                    # tiny switch on same macro feature, ignore
-                    continue
+            else:
+                dist = 0.0
 
-            frame_index_1based = s2["start"] + 1  # first frame of new segment, 1 based
-            raw_events.append(
+            # optional filter on tiny distance switches
+            if dist < MIN_HOLD_SWITCH_DIST:
+                continue
+
+            # choose representative frame as first frame of new segment
+            frame_idx_1based = s2["start"] + 1
+
+            events.append(
                 {
-                    "frame_index": frame_index_1based,
-                    "limb": hand,
-                    "from": h1,
-                    "to": h2,
+                    "frame_index": frame_idx_1based,
+                    "limb": limb,
+                    "from_hold": h1,
+                    "to_hold": h2,
+                    "hold_distance_px": dist,
                 }
             )
 
-    # merge events from different hands that are close in time
-    raw_events.sort(key=lambda e: e["frame_index"])
-    merged: List[Dict] = []
-
-    current_group: Optional[Dict] = None
-
-    for ev in raw_events:
-        if current_group is None:
-            current_group = {
-                "frame_index": ev["frame_index"],
-                "changes": {ev["limb"]: {"from": ev["from"], "to": ev["to"]}},
-            }
-            continue
-
-        if ev["frame_index"] - current_group["frame_index"] <= MERGE_MOVE_WINDOW_FRAMES:
-            # merge into current group
-            current_group["changes"][ev["limb"]] = {"from": ev["from"], "to": ev["to"]}
-            # keep frame index near the earliest
-        else:
-            merged.append(current_group)
-            current_group = {
-                "frame_index": ev["frame_index"],
-                "changes": {ev["limb"]: {"from": ev["from"], "to": ev["to"]}},
-            }
-
-    if current_group is not None:
-        merged.append(current_group)
-
-    return merged
+    # sort all limbs' events by time
+    events.sort(key=lambda e: e["frame_index"])
+    return events
 
 
 def detect_and_classify_moves(
@@ -204,7 +217,28 @@ def detect_and_classify_moves(
 ) -> str:
     """
     Full offline move detection and classification.
-    Returns path to climb_data.json.
+
+    Returns:
+        Path to climb_data.json
+
+    Output JSON has:
+      - video_path
+      - holds_json
+      - fps
+      - moves: list of
+          {
+            move_index,
+            frame_index,
+            time_seconds,
+            limb,
+            from_hold,
+            to_hold,
+            hold_distance_px,
+            type,              # classifier label (possibly "uncertain_*")
+            confidence,        # classifier max probability
+            snapshot_path,
+            probs,             # full probability vector
+          }
     """
     video_path = Path(video_path)
     holds_json_path = Path(holds_json_path)
@@ -228,7 +262,7 @@ def detect_and_classify_moves(
     else:
         moves_dir.mkdir(parents=True, exist_ok=True)
 
-    # first pass: assignments for every frame
+    # first pass - store assignments and limb positions for each frame
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
         raise FileNotFoundError(f"Could not open video file: {video_path}")
@@ -245,59 +279,45 @@ def detect_and_classify_moves(
         min_tracking_confidence=0.5,
     )
 
-    frame_idx = 0
     assignments_series: List[Dict[str, str]] = []
 
-    print(f"First pass: computing assignments for each frame of {video_path}")
+    print(f"[move_detection] First pass on {video_path}")
 
     while True:
         ok, frame = cap.read()
         if not ok or frame is None:
             break
 
-        frame_idx += 1
         height, width = frame.shape[:2]
-
         image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = pose.process(image_rgb)
 
         if not results.pose_landmarks:
-            # no pose, all limbs set to "no_pose"
-            assignments = {limb: "no_pose" for limb in LIMB_LANDMARKS}
+            assignments = {limb: "no_pose" for limb in LIMBS}
         else:
             limb_positions = _compute_limb_positions(results, width, height)
             assignments = _assign_limbs_to_holds(limb_positions, holds)
 
         assignments_series.append(assignments)
 
+    total_frames = len(assignments_series)
     cap.release()
     pose.close()
 
-    total_frames = len(assignments_series)
     print(f"[move_detection] Processed {total_frames} frames for assignments")
 
-    # build stable segments for each hand
-    segments_by_hand: Dict[str, List[Dict]] = {}
-    for hand in HANDS:
-        raw_segments = _build_segments(assignments_series, hand)
-        stable_segments: List[Dict] = []
+    # segments per limb
+    segments_by_limb: Dict[str, List[Dict]] = {}
+    for limb in LIMBS:
+        raw_segments = _build_segments(assignments_series, limb)
+        stable = _filter_stable_segments(raw_segments)
+        segments_by_limb[limb] = stable
 
-        for seg in raw_segments:
-            hold = seg["hold"]
-            length = seg["end"] - seg["start"] + 1
-            if hold in ("air", "no_pose"):
-                continue
-            if length < MIN_SEGMENT_FRAMES:
-                continue
-            stable_segments.append(seg)
+    # move events from segments
+    move_events = _detect_moves_from_segments(segments_by_limb, holds)
+    print(f"[move_detection] Found {len(move_events)} limb hold switches")
 
-        segments_by_hand[hand] = stable_segments
-
-    # detect moves from segments
-    move_events = _detect_hand_moves_from_segments(segments_by_hand, holds)
-    print(f"[move_detection] Found {len(move_events)} candidate move events from hand segments")
-
-    # second pass: classify each move frame and save snapshots
+    # second pass - classify each move frame and save snapshot
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
         raise FileNotFoundError(f"Could not reopen video file: {video_path}")
@@ -315,63 +335,45 @@ def detect_and_classify_moves(
 
     for move_idx, ev in enumerate(move_events):
         target_frame = ev["frame_index"]
-        # seek to frame (0 based index)
-        cap.set(cv2.CAP_PROP_POS_FRAMES, max(0, target_frame - 1))
+        if target_frame < 1 or target_frame > total_frames:
+            continue
+
+        cap.set(cv2.CAP_PROP_POS_FRAMES, target_frame - 1)
         ok, frame = cap.read()
         if not ok or frame is None:
-            print(f"[move_detection] Warning: could not read frame {target_frame} for move {move_idx}")
+            print(f"[move_detection] Warning - could not read frame {target_frame} for move {move_idx}")
             continue
 
         height, width = frame.shape[:2]
         image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = pose.process(image_rgb)
 
-        # tiny search around if pose missing here
         if not results.pose_landmarks:
-            found = False
-            for delta in [-2, -1, 1, 2]:
-                alt_frame = target_frame + delta
-                if alt_frame < 1 or alt_frame > total_frames:
-                    continue
-                cap.set(cv2.CAP_PROP_POS_FRAMES, alt_frame - 1)
-                ok2, frame2 = cap.read()
-                if not ok2 or frame2 is None:
-                    continue
-                image_rgb2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
-                results2 = pose.process(image_rgb2)
-                if results2.pose_landmarks:
-                    target_frame = alt_frame
-                    frame = frame2
-                    results = results2
-                    found = True
-                    break
-            if not found:
-                print(f"[move_detection] No pose around frame {ev['frame_index']} for move {move_idx}, skipping")
-                continue
+            print(f"[move_detection] No pose at frame {target_frame} for move {move_idx}, skipping classifier")
+            label = "no_pose"
+            probs = np.zeros((1,), dtype=float)
+            top_conf = 0.0
+        else:
+            label, probs = classifier.predict_from_landmarks(
+                results.pose_landmarks.landmark
+            )
+            top_conf = float(np.max(probs))
+            if top_conf < MIN_CONFIDENCE_FOR_TAG:
+                label = LOW_CONFIDENCE_PREFIX + label
 
-        label, probs = classifier.predict_from_landmarks(
-            results.pose_landmarks.landmark
-        )
-        top_conf = float(np.max(probs))
-        if top_conf < MIN_CONFIDENCE:
-            print(f"[move_detection] Low confidence {top_conf:.2f} at frame {target_frame}, skipping move")
-            continue
-
-        # snapshot
         snapshot_path = moves_dir / f"move_{move_idx+1:02d}.jpg"
         cv2.imwrite(str(snapshot_path), frame)
-
-        # assignments at that frame (from first pass)
-        assignment_at_frame = assignments_series[target_frame - 1]
 
         move_data = {
             "move_index": move_idx,
             "frame_index": int(target_frame),
             "time_seconds": target_frame / fps,
+            "limb": ev["limb"],
+            "from_hold": ev["from_hold"],
+            "to_hold": ev["to_hold"],
+            "hold_distance_px": ev["hold_distance_px"],
             "type": label,
             "confidence": top_conf,
-            "hand_changes": ev["changes"],           # which hands moved between which holds
-            "assignments": assignment_at_frame,      # all limbs
             "snapshot_path": str(snapshot_path),
             "probs": probs.tolist(),
         }
@@ -379,7 +381,8 @@ def detect_and_classify_moves(
 
         print(
             f"Saved move {move_idx+1:02d} at frame {target_frame}, "
-            f"type={label}, conf={top_conf:.2f}, hand_changes={ev['changes']}"
+            f"limb={ev['limb']}, {ev['from_hold']} -> {ev['to_hold']}, "
+            f"dist={ev['hold_distance_px']:.1f}, type={label}, conf={top_conf:.2f}"
         )
 
     cap.release()
@@ -407,7 +410,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Detect and classify moves from a climbing video"
+        description="Detect limb hold switches and classify moves from a climbing video"
     )
     parser.add_argument("--video", "-v", required=True, help="Path to video file")
     parser.add_argument(
