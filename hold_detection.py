@@ -306,18 +306,6 @@ def detect_holds_from_video(
 ) -> Tuple[List[str], Dict[str, Tuple[int, int]]]:
     """
     Multi frame composite hold detection.
-
-    If ref_lab / ref_hsv not provided:
-        - scan early frames for pose
-        - sample wrist patches
-        - pick "hold color" cluster inside that patch
-        - fallback to KMeans on first frame if needed
-
-    Then:
-        - load ~5 frames across the video
-        - build composite mask for that color
-        - group nearby contours into holds
-        - save centers and debug images
     """
     # Step 1: color selection
     if ref_lab is None or ref_hsv is None:
@@ -384,10 +372,11 @@ def detect_holds_from_video(
         used.add(i)
         grouped_contours.append(group)
 
+    # Initialize output_vis early
+    output_vis = frames[0].copy() if frames else np.zeros((480, 640, 3), dtype=np.uint8)
+    
     hold_ids = []
     hold_positions: Dict[str, Tuple[int, int]] = {}
-
-    output_vis = frames[0].copy()
 
     for idx, group in enumerate(grouped_contours):
         merged = np.vstack(group)
@@ -404,8 +393,15 @@ def detect_holds_from_video(
             cv2.putText(output_vis, hold_id, (cx + 5, cy - 5),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
+    # NOW save everything (after output_vis is created)
     os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
     cv2.imwrite(overlay_path, output_vis)
+    
+    # Save the first frame as a clean reference for hold classification
+    clean_frame_path = overlay_path.replace("hold_overlay.jpg", "holds_clean_frame.jpg")
+    cv2.imwrite(clean_frame_path, frames[0])
+    print(f"[hold_detection] Saved clean frame to {clean_frame_path}")
+    
     with open(save_path, "w") as f:
         json.dump(hold_positions, f, indent=2)
 
@@ -413,6 +409,23 @@ def detect_holds_from_video(
     print(f"[hold_detection] Saved overlay to {overlay_path}")
     return hold_ids, hold_positions
 
+def is_likely_body_part(contour, frame):
+    """Check if contour is likely a body part based on shape."""
+    area = cv2.contourArea(contour)
+    hull = cv2.convexHull(contour)
+    hull_area = cv2.contourArea(hull)
+    
+    # Solidity: how "solid" the shape is (holds should be fairly solid)
+    solidity = area / hull_area if hull_area > 0 else 0
+    
+    # Very elongated shapes are likely limbs
+    x, y, w, h = cv2.boundingRect(contour)
+    aspect_ratio = max(w, h) / min(w, h) if min(w, h) > 0 else 0
+    
+    # Filter out:
+    # - Very irregular shapes (low solidity)
+    # - Very elongated (high aspect ratio)
+    return solidity < 0.5 or aspect_ratio > 4.0
 
 def build_holds_json_from_video(
     video_path: str,
