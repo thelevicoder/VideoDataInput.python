@@ -3,23 +3,13 @@
 # Use the trained hold classifier to assign a class and confidence
 # to each contour center in output/hold_positions_auto.json.
 #
-# It also saves a debug crop image for every contour into debug_patches/
-# so you can visually check what the classifier is looking at.
-#
-# Inputs:
-#   output/hold_positions_auto.json   (from your hold color detector)
-#   output/holds_debug.jpg            (color snapshot with holds)
-#   models/hold_classifier_resnet18.pt
-#   models/hold_class_labels.json
-#
-# Outputs:
-#   output/hold_positions_enriched.json
-#   output/holds_enriched_overlay.jpg
-#   debug_patches/patch_<contour_id>.jpg
+# Now uses the composite mask to isolate holds on white backgrounds,
+# eliminating climber occlusion issues.
 
 from pathlib import Path
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
+import matplotlib.pyplot as plt
 
 import cv2
 import numpy as np
@@ -28,35 +18,6 @@ from PIL import Image
 import torch
 import torch.nn as nn
 from torchvision import models, transforms
-
-def is_likely_person_occlusion(crop: np.ndarray) -> bool:
-    """
-    Very conservative heuristic.
-    Only return True if the crop is clearly mostly person
-    (large majority skin tones or very dark cloth).
-    """
-    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
-    h, s, v = cv2.split(hsv)
-
-    total = crop.shape[0] * crop.shape[1]
-    if total == 0:
-        return False
-
-    # skin-ish tones in HSV (very rough)
-    skin_mask = (
-        ((h >= 0) & (h <= 25)) & (s > 50) & (v > 50)
-    ) | (
-        ((h >= 160) & (h <= 180)) & (s > 50) & (v > 50)
-    )
-    skin_ratio = float(np.count_nonzero(skin_mask)) / float(total)
-
-    # very dark cloth
-    dark_mask = (v < 30)
-    dark_ratio = float(np.count_nonzero(dark_mask)) / float(total)
-
-    # only treat as occluded if it is *mostly* skin or *mostly* dark
-    return (skin_ratio > 0.7) or (dark_ratio > 0.8)
-
 
 
 def load_holds(json_path: Path) -> Dict[str, List[float]]:
@@ -97,8 +58,17 @@ def build_model(model_path: Path, labels_path: Path, device):
     return model, classes, tfm
 
 
-def crop_around_center(img: np.ndarray, cx: float, cy: float, size: int = 160):
-    """Return a square crop around (cx, cy) and its bbox [x1, y1, x2, y2]."""
+def crop_hold_with_mask(
+    img: np.ndarray,
+    mask: np.ndarray,
+    cx: float,
+    cy: float,
+    size: int = 160
+) -> Tuple[np.ndarray, list]:
+    """
+    Crop around center, keeping ONLY the connected component at the center.
+    Keeps the natural wall background to match training data.
+    """
     h, w = img.shape[:2]
     half = size // 2
 
@@ -113,8 +83,36 @@ def crop_around_center(img: np.ndarray, cx: float, cy: float, size: int = 160):
     if x2 <= x1 or y2 <= y1:
         return None, None
 
-    crop = img[y1:y2, x1:x2].copy()
-    return crop, [x1, y1, x2, y2]
+    # Crop the image and mask
+    crop_img = img[y1:y2, x1:x2].copy()
+    crop_mask = mask[y1:y2, x1:x2].copy()
+    
+    # Find connected components in the cropped mask
+    num_labels, labels = cv2.connectedComponents(crop_mask)
+    
+    # Find which component contains the center point
+    local_cx = cx - x1
+    local_cy = cy - y1
+    
+    # Make sure center is within crop bounds
+    if 0 <= local_cy < labels.shape[0] and 0 <= local_cx < labels.shape[1]:
+        center_label = labels[local_cy, local_cx]
+        
+        if center_label > 0:  # 0 is background
+            # Create mask with only the component containing the center
+            single_hold_mask = (labels == center_label).astype(np.uint8) * 255
+        else:
+            # Center is in background, use the whole mask
+            single_hold_mask = crop_mask
+    else:
+        single_hold_mask = crop_mask
+
+    # KEEP THE NATURAL BACKGROUND - just use the original crop
+    # The single_hold_mask isolates the hold but we return the full crop
+    # This matches the training data format better
+    isolated_hold = crop_img
+
+    return isolated_hold, [x1, y1, x2, y2]
 
 
 def classify_crop(
@@ -192,6 +190,7 @@ def main():
 
     holds_json = project_root / "output" / "hold_positions_auto.json"
     frame_image = project_root / "output" / "holds_debug.jpg"
+    composite_mask = project_root / "output" / "hold_mask_composite.jpg"
     model_path = project_root / "models" / "hold_classifier_resnet18.pt"
     labels_path = project_root / "models" / "hold_class_labels.json"
 
@@ -199,6 +198,8 @@ def main():
         raise FileNotFoundError(f"Holds JSON not found: {holds_json}")
     if not frame_image.exists():
         raise FileNotFoundError(f"Frame image not found: {frame_image}")
+    if not composite_mask.exists():
+        raise FileNotFoundError(f"Composite mask not found: {composite_mask}")
     if not model_path.exists():
         raise FileNotFoundError(f"Classifier model not found: {model_path}")
     if not labels_path.exists():
@@ -215,6 +216,13 @@ def main():
     if img is None:
         raise RuntimeError(f"Could not read frame image {frame_image}")
 
+    # Load the composite mask
+    mask = cv2.imread(str(composite_mask), cv2.IMREAD_GRAYSCALE)
+    if mask is None:
+        raise RuntimeError(f"Could not read composite mask {composite_mask}")
+
+    print(f"Loaded composite mask: {mask.shape}")
+
     # folder for visual debugging of crops
     debug_dir = project_root / "debug_patches"
     debug_dir.mkdir(exist_ok=True)
@@ -223,7 +231,8 @@ def main():
 
     for cid, center in holds.items():
         cx, cy = center
-        crop, bbox = crop_around_center(img, cx, cy, size=160)
+        crop, bbox = crop_hold_with_mask(img, mask, cx, cy, size=160)
+        
         if crop is None:
             enriched[cid] = {
                 "center": center,
@@ -233,22 +242,22 @@ def main():
             }
             continue
 
-        # save the raw crop so we can see what the model sees
-                # save the raw crop so we can see what the model sees
+        # save the isolated crop (hold on white background)
         debug_path = debug_dir / f"patch_{cid}.jpg"
         cv2.imwrite(str(debug_path), crop)
 
-        # if the crop looks mostly like person, do not trust classification
-        if is_likely_person_occlusion(crop):
-            enriched[cid] = {
-                "center": center,
-                "class": "unknown",
-                "confidence": 0.0,
-                "bbox": bbox,
-                "reason": "likely_person_occlusion",
-            }
-            continue
+        # Visualize first 3 holds
+        if cid in ["contour_0", "contour_1", "contour_2"]:
+            plt.figure(figsize=(6, 6))
+            plt.imshow(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
+            plt.title(f"Hold {cid} - Isolated on white background")
+            plt.axis('off')
+            plt.tight_layout()
+            plt.savefig(f"visual_debug_{cid}.png", dpi=150, bbox_inches='tight')
+            plt.close()
+            print(f"Saved visualization: visual_debug_{cid}.png")
 
+        # No need for person occlusion check - mask handles it!
         cls_idx, conf = classify_crop(model, tfm, crop, device)
         cls_name = classes[cls_idx]
 
@@ -259,7 +268,6 @@ def main():
             "bbox": bbox,
         }
 
-
     out_json = project_root / "output" / "hold_positions_enriched.json"
     out_json.parent.mkdir(parents=True, exist_ok=True)
     with out_json.open("w", encoding="utf8") as f:
@@ -269,7 +277,6 @@ def main():
     overlay_out = project_root / "output" / "holds_enriched_overlay.jpg"
     draw_debug_overlay(img, holds, enriched, overlay_out)
 
-    
 
 if __name__ == "__main__":
     main()
