@@ -1,24 +1,54 @@
+#!/usr/bin/env python3
 # hold_detection.py
+#
+# Universal Hold Detector
+# - Supports manual color selection (for batch pipeline)
+# - Supports automatic red detection (default)
+# - Handles all hold colors
 
 import cv2
 import numpy as np
 import json
-import os
-from typing import List, Dict, Tuple
+from pathlib import Path
+from typing import List, Dict, Tuple, Optional
 
-import mediapipe as mp
+# ==============================================================================
+# PARAMETERS - ADJUST THESE FOR YOUR HOLDS
+# ==============================================================================
 
-mp_pose = mp.solutions.pose
+# Default RED hold colors (if no manual color provided)
+DEFAULT_LAB = np.array([145, 165, 135], dtype=np.float32)
+DEFAULT_HSV = np.array([175, 180, 150], dtype=np.float32)
 
-LAB_TOLERANCE = 18
-HSV_TOLERANCE = (12, 40, 40)
+# Color matching tolerances
+LAB_TOLERANCE = 25          # Tight for precise color matching
+HSV_HUE_TOLERANCE = 8       # VERY strict hue (prevent red/orange confusion)
+HSV_SAT_TOLERANCE = 80      # Base tolerance (increased 30% for chalk)
+HSV_VAL_TOLERANCE = 80      # Base tolerance (increased 20% for chalk)
+
+# Contour filters
 MIN_CONTOUR_AREA = 200
-MAX_CONTOUR_AREA = 8000
-GROUP_DISTANCE_THRESHOLD = 50  # For merging fragments
-MORPH_KERNEL = np.ones((7, 7), np.uint8)
+MAX_CONTOUR_AREA = 12000
+MIN_SOLIDITY = 0.4  # Filter out very irregular shapes
+
+# Morphology
+MORPH_KERNEL_SIZE = 9
+DILATE_ITERATIONS = 3
+
+# Frame sampling
+NUM_FRAMES = 10
+
+# Contour grouping
+GROUP_DISTANCE = 80
+
+# Debug output
+DEBUG = True
+
+# ==============================================================================
 
 
 def normalize_lab(image: np.ndarray) -> np.ndarray:
+    """Normalize LAB color space with CLAHE."""
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
     clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
@@ -26,433 +56,380 @@ def normalize_lab(image: np.ndarray) -> np.ndarray:
     return cv2.merge((l, a, b))
 
 
-def extract_hold_mask(image: np.ndarray, ref_lab: np.ndarray, ref_hsv: np.ndarray) -> np.ndarray:
-    """
-    Given a frame and reference colors in LAB and HSV, produce a binary mask
-    of pixels that match that color within the given tolerances.
-    """
-    lab_image = normalize_lab(image)
-    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-    # LAB distance
-    diff_lab = np.linalg.norm(lab_image - ref_lab, axis=2)
-    mask_lab = (diff_lab < LAB_TOLERANCE).astype(np.uint8) * 255
-
-    # HSV distance with circular hue
-    hue_diff = np.abs(hsv_image[:, :, 0] - ref_hsv[0])
-    hue_diff = np.minimum(hue_diff, 180 - hue_diff)
-    diff_s = np.abs(hsv_image[:, :, 1] - ref_hsv[1])
-    diff_v = np.abs(hsv_image[:, :, 2] - ref_hsv[2])
-    mask_hsv = ((hue_diff < HSV_TOLERANCE[0]) &
-                (diff_s < HSV_TOLERANCE[1]) &
-                (diff_v < HSV_TOLERANCE[2])).astype(np.uint8) * 255
-
-    combined = cv2.bitwise_and(mask_lab, mask_hsv)
-    combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, MORPH_KERNEL)
-    combined = cv2.dilate(combined, MORPH_KERNEL, iterations=2)
-    return combined
-
-
-def load_video_frames_sequential(video_path: str, num_frames: int = 5) -> List[np.ndarray]:
-    """
-    Read the video once and grab approx num_frames evenly spaced frames
-    without random seeking, to avoid frame read failures.
-    """
+def sample_frames_from_video(video_path: str, num_frames: int = NUM_FRAMES) -> List[np.ndarray]:
+    """Sample frames evenly from middle portion of video."""
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        raise FileNotFoundError(f"Could not open video file: {video_path}")
-
+        raise FileNotFoundError(f"Cannot open video: {video_path}")
+    
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    if total_frames <= 0:
-        cap.release()
-        raise RuntimeError("Video has no frames")
-
-    fractions = np.linspace(0.0, 1.0, num_frames)
-    target_indices = [int(f * (total_frames - 1)) for f in fractions]
-    target_indices = sorted(set(target_indices))
-    target_set = set(target_indices)
-
-    frames: List[np.ndarray] = []
-    idx = 0
-
-    while True:
+    
+    # Sample from middle 70% (skip start/end for better quality)
+    start_frame = int(total_frames * 0.15)
+    end_frame = int(total_frames * 0.85)
+    
+    frame_indices = np.linspace(start_frame, end_frame, num_frames, dtype=int)
+    frames = []
+    
+    for idx in frame_indices:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
         ret, frame = cap.read()
-        if not ret or frame is None:
-            break
-
-        if idx in target_set:
+        if ret:
             frames.append(frame.copy())
-
-        idx += 1
-        if idx > target_indices[-1]:
-            break
-
+    
     cap.release()
-    print(f"[hold_detection] Loaded {len(frames)} frames for composite holds (targets {target_indices})")
+    print(f"[hold_detection] Sampled {len(frames)} frames from video")
     return frames
 
 
-def infer_ref_colors_from_wrist_patches(
-    video_path: str,
-    max_search_frames: int = 600,
-    stride: int = 1,
-    patch_radius: int = 25,
-    k_clusters: int = 3,
-) -> Tuple[np.ndarray, np.ndarray]:
+def create_color_mask(
+    frame: np.ndarray,
+    target_lab: np.ndarray,
+    target_hsv: np.ndarray,
+    is_red: bool = False
+) -> np.ndarray:
     """
-    Scan early frames until we see a pose. For each wrist, take a patch around
-    the wrist and run KMeans on HSV inside that patch. Pick the cluster that:
-      - has enough pixels
-      - is reasonably saturated and bright
-      - is not in the skin hue band (roughly 5 to 40)
-    Return the LAB and HSV center of that cluster.
+    Create mask for holds of specific color.
+    
+    Args:
+        frame: Input frame
+        target_lab: Target color in LAB space
+        target_hsv: Target color in HSV space
+        is_red: Whether target is red (needs special wraparound handling)
     """
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        raise FileNotFoundError(f"Could not open video file: {video_path}")
-
-    chosen_lab = None
-    chosen_hsv = None
-
-    with mp_pose.Pose(
-        static_image_mode=False,
-        model_complexity=1,
-        enable_segmentation=False,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5,
-    ) as pose:
-        frame_idx = 0
-        while frame_idx < max_search_frames:
-            ret, frame = cap.read()
-            if not ret or frame is None:
-                break
-
-            if frame_idx % stride != 0:
-                frame_idx += 1
-                continue
-
-            h, w = frame.shape[:2]
-            image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = pose.process(image_rgb)
-
-            if not results.pose_landmarks:
-                frame_idx += 1
-                continue
-
-            print(f"[hold_detection] Using pose frame {frame_idx} for color sampling")
-
-            landmarks = results.pose_landmarks.landmark
-
-            wrists = [
-                mp_pose.PoseLandmark.LEFT_WRIST,
-                mp_pose.PoseLandmark.RIGHT_WRIST,
-            ]
-
-            lab_img = normalize_lab(frame)
-            hsv_img = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
-            best_score = -1.0
-            best_lab_center = None
-            best_hsv_center = None
-
-            for w_idx in wrists:
-                wr = landmarks[w_idx]
-                if wr.visibility < 0.5:
-                    continue
-
-                cx = int(wr.x * w)
-                cy = int(wr.y * h)
-
-                x0 = max(0, cx - patch_radius)
-                x1 = min(w, cx + patch_radius)
-                y0 = max(0, cy - patch_radius)
-                y1 = min(h, cy + patch_radius)
-
-                if x1 <= x0 or y1 <= y0:
-                    continue
-
-                patch_hsv = hsv_img[y0:y1, x0:x1].reshape(-1, 3)
-                patch_lab = lab_img[y0:y1, x0:x1].reshape(-1, 3)
-
-                if patch_hsv.shape[0] < k_clusters * 10:
-                    continue
-
-                patch_hsv_f = patch_hsv.astype(np.float32)
-
-                criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 1.0)
-                ret, labels, centers = cv2.kmeans(
-                    patch_hsv_f,
-                    k_clusters,
-                    None,
-                    criteria,
-                    5,
-                    cv2.KMEANS_PP_CENTERS,
-                )
-                if ret is None or centers is None:
-                    continue
-
-                centers = centers.astype(np.float32)
-                labels = labels.flatten()
-
-                for ci in range(k_clusters):
-                    mask = labels == ci
-                    count = np.count_nonzero(mask)
-                    if count < patch_hsv.shape[0] * 0.05:
-                        # too few pixels, probably noise
-                        continue
-
-                    cluster_hsv = centers[ci]
-                    h_val, s_val, v_val = cluster_hsv
-
-                    # Normalised scores
-                    s_norm = s_val / 255.0
-                    v_norm = v_val / 255.0
-
-                    # Skin-ish hues 5-40 get penalized
-                    if 5 <= h_val <= 40:
-                        skin_penalty = 0.6
-                    else:
-                        skin_penalty = 0.0
-
-                    # Prefer fairly saturated and bright clusters
-                    score = s_norm * 0.6 + v_norm * 0.3 - skin_penalty
-
-                    if score > best_score:
-                        best_score = score
-                        # Compute LAB center from pixels in that cluster
-                        cluster_lab_vals = patch_lab[mask]
-                        cluster_lab_center = np.mean(cluster_lab_vals, axis=0)
-                        best_lab_center = cluster_lab_center
-                        best_hsv_center = cluster_hsv
-
-            if best_lab_center is not None and best_hsv_center is not None:
-                chosen_lab = best_lab_center
-                chosen_hsv = best_hsv_center
-                break
-
-            frame_idx += 1
-
-    cap.release()
-
-    if chosen_lab is None or chosen_hsv is None:
-        raise RuntimeError("Could not infer reference color from climber wrists")
-
-    print(f"[hold_detection] Wrist inferred LAB: {chosen_lab}, HSV: {chosen_hsv}")
-    return chosen_lab, chosen_hsv
-
-
-def fallback_kmeans_color(frame: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    KMeans fallback if pose based color inference fails.
-    Slight bias toward saturated, bright clusters.
-    """
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     lab = normalize_lab(frame)
-
-    h, w = hsv.shape[:2]
-    scale = 0.25
-    small_hsv = cv2.resize(hsv, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
-    small_lab = cv2.resize(lab, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
-
-    data_hsv = small_hsv.reshape(-1, 3).astype(np.float32)
-    data_lab = small_lab.reshape(-1, 3).astype(np.float32)
-
-    K = 4
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 1.0)
-    ret, labels, centers_hsv = cv2.kmeans(
-        data_hsv,
-        K,
-        None,
-        criteria,
-        5,
-        cv2.KMEANS_PP_CENTERS,
-    )
-
-    if ret is None or centers_hsv is None:
-        raise RuntimeError("KMeans color clustering failed")
-
-    centers_hsv = centers_hsv.astype(np.float32)
-    labels = labels.flatten()
-
-    # Prefer saturated, bright clusters
-    s = centers_hsv[:, 1]
-    v = centers_hsv[:, 2]
-    scores = (s / 255.0) * 0.7 + (v / 255.0) * 0.3
-    idx = int(np.argmax(scores))
-
-    ref_hsv = centers_hsv[idx]
-
-    centers_lab = np.zeros_like(centers_hsv)
-    for i in range(K):
-        mask = labels == i
-        if np.any(mask):
-            centers_lab[i] = np.mean(data_lab[mask], axis=0)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    
+    # LAB-based mask
+    diff_lab = np.linalg.norm(lab - target_lab, axis=2)
+    mask_lab = (diff_lab < LAB_TOLERANCE).astype(np.uint8) * 255
+    
+    # For chalky holds: also detect FADED versions (whiter, less saturated)
+    # Chalk makes ANY hold: lighter (higher L), less saturated (lower a/b)
+    faded_lab = target_lab.copy()
+    faded_lab[0] = min(255, faded_lab[0] + 30)  # Lighter
+    
+    diff_faded = np.linalg.norm(lab - faded_lab, axis=2)
+    mask_faded = (diff_faded < LAB_TOLERANCE * 1.5).astype(np.uint8) * 255
+    
+    # Combine original and faded masks
+    mask_lab = cv2.bitwise_or(mask_lab, mask_faded)
+    
+    # HSV-based mask
+    hue = hsv[:, :, 0].astype(float)
+    sat = hsv[:, :, 1].astype(float)
+    val = hsv[:, :, 2].astype(float)
+    
+    if is_red:
+        # Special handling for red (wraps around at 0/180)
+        hue_diff = np.abs(hue - target_hsv[0])
+        hue_diff = np.minimum(hue_diff, 180 - hue_diff)
+        
+        # STRICT: Only allow hues in TRUE red range (exclude orange/pink)
+        # Red is 0-10 or 170-180 in HSV (very strict to avoid orange at 10-25)
+        if target_hsv[0] < 90:  # Wrapping from high side (175-180 wraps to 0-10)
+            # Target is in the "low red" range (0-10)
+            red_hue_mask = ((hue <= 10) | (hue >= 170)).astype(np.uint8) * 255
         else:
-            centers_lab[i] = np.mean(data_lab, axis=0)
+            # Target is in the "high red" range (170-180)
+            red_hue_mask = ((hue <= 10) | (hue >= 170)).astype(np.uint8) * 255
+    else:
+        hue_diff = np.abs(hue - target_hsv[0])
+        red_hue_mask = 255  # No restriction for non-red colors
+        
+        # For non-red colors, ensure they don't bleed into adjacent hues
+        # Create a hard boundary around the target hue
+        hue_min = max(0, target_hsv[0] - HSV_HUE_TOLERANCE)
+        hue_max = min(180, target_hsv[0] + HSV_HUE_TOLERANCE)
+        red_hue_mask = ((hue >= hue_min) & (hue <= hue_max)).astype(np.uint8) * 255
+    
+    sat_diff = np.abs(sat - target_hsv[1])
+    val_diff = np.abs(val - target_hsv[2])
+    
+    # For red/chalky holds: be more lenient with saturation/value
+    # BUT add saturation minimum to distinguish red from orange/pink
+    if is_red:
+        sat_tolerance = HSV_SAT_TOLERANCE * 1.3  # 30% more lenient - handles chalk
+        val_tolerance = HSV_VAL_TOLERANCE * 1.2  # 20% more lenient - handles chalk
+        
+        # CRITICAL: Red must have reasonably high saturation (not orange/pink)
+        # Pure red: high saturation (>100)
+        # Orange: moderate saturation (80-150)
+        # We want to catch red but not orange
+        min_saturation = max(80, target_hsv[1] - 60)  # Require decent saturation
+        sat_check = (sat >= min_saturation)
+    else:
+        sat_tolerance = HSV_SAT_TOLERANCE * 1.3  # 30% more lenient - handles chalk
+        val_tolerance = HSV_VAL_TOLERANCE * 1.2  # 20% more lenient - handles chalk
+        sat_check = True  # No minimum for non-red colors
+    
+    mask_hsv = (
+        (hue_diff < HSV_HUE_TOLERANCE) &
+        (sat_diff < sat_tolerance) &
+        (val_diff < val_tolerance) &
+        sat_check
+    ).astype(np.uint8) * 255
+    
+    # Apply red hue restriction if applicable
+    if is_red:
+        mask_hsv = cv2.bitwise_and(mask_hsv, red_hue_mask)
+    
+    # For red, also try simple HSV range (covers both ends)
+    if is_red:
+        # DISABLED - too broad, picks up orange/purple
+        # Only use the precise LAB+HSV matching above
+        pass
+        
+        # Combine masks
+        combined = cv2.bitwise_and(mask_lab, mask_hsv)
+    else:
+        # Combine LAB and HSV
+        combined = cv2.bitwise_and(mask_lab, mask_hsv)
+    
+    # Morphological operations
+    kernel = np.ones((MORPH_KERNEL_SIZE, MORPH_KERNEL_SIZE), np.uint8)
+    combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel)
+    combined = cv2.morphologyEx(combined, cv2.MORPH_OPEN, kernel)
+    combined = cv2.dilate(combined, kernel, iterations=DILATE_ITERATIONS)
+    
+    return combined
 
-    ref_lab = centers_lab[idx]
 
-    print(f"[hold_detection] Fallback KMeans LAB: {ref_lab}, HSV: {ref_hsv}")
-    return ref_lab, ref_hsv
+def create_composite_mask(
+    frames: List[np.ndarray],
+    target_lab: np.ndarray,
+    target_hsv: np.ndarray,
+    is_red: bool = False,
+    debug_dir: Optional[Path] = None
+) -> np.ndarray:
+    """Create composite mask from multiple frames."""
+    print("[hold_detection] Creating composite mask from frames...")
+    
+    composite = np.zeros(frames[0].shape[:2], dtype=np.uint8)
+    
+    for i, frame in enumerate(frames):
+        mask = create_color_mask(frame, target_lab, target_hsv, is_red)
+        composite = cv2.bitwise_or(composite, mask)
+        
+        if DEBUG and debug_dir:
+            cv2.imwrite(str(debug_dir / f"mask_{i:02d}.jpg"), mask)
+    
+    if DEBUG and debug_dir:
+        cv2.imwrite(str(debug_dir / "composite_mask.jpg"), composite)
+    
+    return composite
 
 
-def detect_holds_from_video(
-    video_path: str,
-    ref_lab: np.ndarray = None,
-    ref_hsv: np.ndarray = None,
-    save_path: str = "output/hold_positions.json",
-    overlay_path: str = "output/hold_overlay.jpg",
-    composite_mask_path: str = "output/hold_mask_composite.jpg",
-) -> Tuple[List[str], Dict[str, Tuple[int, int]]]:
-    """
-    Multi frame composite hold detection.
-    """
-    # Step 1: color selection
-    if ref_lab is None or ref_hsv is None:
-        try:
-            ref_lab, ref_hsv = infer_ref_colors_from_wrist_patches(video_path)
-        except Exception as e:
-            print(f"[hold_detection] Pose based color inference failed: {e}")
-            print("[hold_detection] Falling back to KMeans on first frame")
-            cap = cv2.VideoCapture(video_path)
-            ok, first_frame = cap.read()
-            cap.release()
-            if not ok or first_frame is None:
-                raise RuntimeError("Could not read first frame for KMeans fallback")
-            ref_lab, ref_hsv = fallback_kmeans_color(first_frame)
-
-    # Step 2: multi frame composite mask
-    frames = load_video_frames_sequential(video_path, num_frames=5)
-    if not frames:
-        raise RuntimeError("No frames loaded from video for hold detection")
-
-    composite_mask = np.zeros(frames[0].shape[:2], dtype=np.uint8)
-    for frame in frames:
-        mask = extract_hold_mask(frame, ref_lab, ref_hsv)
-        composite_mask = cv2.bitwise_or(composite_mask, mask)
-
-    os.makedirs(os.path.dirname(composite_mask_path) or ".", exist_ok=True)
-    cv2.imwrite(composite_mask_path, composite_mask)
-
-    contours, _ = cv2.findContours(composite_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    grouped_contours = []
+def filter_and_group_contours(
+    mask: np.ndarray,
+    reference_frame: np.ndarray
+) -> Tuple[List[str], Dict[str, List[int]], np.ndarray]:
+    """Filter contours by size/shape and group nearby ones into holds."""
+    
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    print(f"[hold_detection] Found {len(contours)} raw contours")
+    
+    # Filter by size and solidity
+    valid_contours = []
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        
+        # Size filter
+        if area < MIN_CONTOUR_AREA or area > MAX_CONTOUR_AREA:
+            continue
+        
+        # Solidity filter (removes very irregular shapes like text)
+        hull = cv2.convexHull(cnt)
+        hull_area = cv2.contourArea(hull)
+        if hull_area > 0:
+            solidity = area / hull_area
+            if solidity < MIN_SOLIDITY:
+                continue
+        
+        valid_contours.append(cnt)
+    
+    print(f"[hold_detection] {len(valid_contours)} valid contours after filtering")
+    
+    # Group nearby contours
+    groups = []
     used = set()
-
-    for i, c1 in enumerate(contours):
+    
+    for i, cnt1 in enumerate(valid_contours):
         if i in used:
             continue
-
-        area1 = cv2.contourArea(c1)
-        if area1 < MIN_CONTOUR_AREA or area1 > MAX_CONTOUR_AREA:
-            continue
-
-        group = [c1]
-        M1 = cv2.moments(c1)
+        
+        M1 = cv2.moments(cnt1)
         if M1["m00"] == 0:
             continue
-        c1_center = np.array([M1["m10"] / M1["m00"], M1["m01"] / M1["m00"]])
-
-        for j, c2 in enumerate(contours):
+        
+        center1 = np.array([M1["m10"] / M1["m00"], M1["m01"] / M1["m00"]])
+        group = [cnt1]
+        used.add(i)
+        
+        # Find nearby contours
+        for j, cnt2 in enumerate(valid_contours):
             if j <= i or j in used:
                 continue
-
-            area2 = cv2.contourArea(c2)
-            if area2 < MIN_CONTOUR_AREA or area2 > MAX_CONTOUR_AREA:
-                continue
-
-            M2 = cv2.moments(c2)
+            
+            M2 = cv2.moments(cnt2)
             if M2["m00"] == 0:
                 continue
-            c2_center = np.array([M2["m10"] / M2["m00"], M2["m01"] / M2["m00"]])
-
-            if np.linalg.norm(c1_center - c2_center) < GROUP_DISTANCE_THRESHOLD:
-                group.append(c2)
+            
+            center2 = np.array([M2["m10"] / M2["m00"], M2["m01"] / M2["m00"]])
+            
+            if np.linalg.norm(center1 - center2) < GROUP_DISTANCE:
+                group.append(cnt2)
                 used.add(j)
-
-        used.add(i)
-        grouped_contours.append(group)
-
-    # Initialize output_vis early
-    output_vis = frames[0].copy() if frames else np.zeros((480, 640, 3), dtype=np.uint8)
+        
+        groups.append(group)
     
+    print(f"[hold_detection] Grouped into {len(groups)} holds")
+    
+    # Create hold positions and visualization
     hold_ids = []
-    hold_positions: Dict[str, Tuple[int, int]] = {}
-
-    for idx, group in enumerate(grouped_contours):
+    hold_positions = {}
+    vis = reference_frame.copy()
+    
+    for idx, group in enumerate(groups):
+        # Merge contours in group
         merged = np.vstack(group)
         hull = cv2.convexHull(merged)
+        
+        # Get centroid
         M = cv2.moments(hull)
-        if M["m00"] != 0:
-            cx = int(M["m10"] / M["m00"])
-            cy = int(M["m01"] / M["m00"])
-            hold_id = f"contour_{idx}"
-            hold_ids.append(hold_id)
-            hold_positions[hold_id] = (cx, cy)
-            cv2.drawContours(output_vis, [hull], -1, (0, 255, 0), 2)
-            cv2.circle(output_vis, (cx, cy), 5, (0, 255, 255), -1)
-            cv2.putText(output_vis, hold_id, (cx + 5, cy - 5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        if M["m00"] == 0:
+            continue
+        
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
+        
+        hold_id = f"hold_{idx}"
+        hold_ids.append(hold_id)
+        hold_positions[hold_id] = [cx, cy]
+        
+        # Draw on visualization
+        cv2.drawContours(vis, [hull], -1, (0, 255, 0), 3)
+        cv2.circle(vis, (cx, cy), 10, (0, 255, 255), -1)
+        cv2.putText(vis, hold_id, (cx + 15, cy - 15),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    
+    return hold_ids, hold_positions, vis
 
-    # NOW save everything (after output_vis is created)
-    os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
-    cv2.imwrite(overlay_path, output_vis)
+
+def detect_holds_v2(
+    video_path: str,
+    manual_color_lab: Optional[np.ndarray] = None,
+    manual_color_hsv: Optional[np.ndarray] = None,
+    output_dir: str = "output"
+) -> Tuple[List[str], Dict[str, List[int]]]:
+    """
+    Detect climbing holds from video.
     
-    # Save the first frame as a clean reference for hold classification
-    clean_frame_path = overlay_path.replace("hold_overlay.jpg", "holds_clean_frame.jpg")
-    cv2.imwrite(clean_frame_path, frames[0])
-    print(f"[hold_detection] Saved clean frame to {clean_frame_path}")
+    Args:
+        video_path: Path to video file
+        manual_color_lab: Optional manual color in LAB space
+        manual_color_hsv: Optional manual color in HSV space
+        output_dir: Output directory for results
     
-    with open(save_path, "w") as f:
+    Returns:
+        hold_ids: List of hold IDs
+        hold_positions: Dict mapping hold_id to [x, y] position
+    """
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    
+    debug_dir = output_path / "debug_hold_detection"
+    if DEBUG:
+        debug_dir.mkdir(exist_ok=True)
+    
+    # Determine target color
+    if manual_color_lab is not None and manual_color_hsv is not None:
+        target_lab = manual_color_lab
+        target_hsv = manual_color_hsv
+        print("="*70)
+        print("HOLD DETECTOR (Manual Color)")
+        print("="*70)
+        print(f"Target LAB: {target_lab.astype(int)}")
+        print(f"Target HSV: {target_hsv.astype(int)}")
+    else:
+        target_lab = DEFAULT_LAB
+        target_hsv = DEFAULT_HSV
+        print("="*70)
+        print("HOLD DETECTOR (Default: RED)")
+        print("="*70)
+        print(f"Target LAB: {target_lab.astype(int)}")
+        print(f"Target HSV: {target_hsv.astype(int)}")
+    
+    # Check if target is red (needs special handling)
+    is_red = (target_hsv[0] < 15 or target_hsv[0] > 170)  # Stricter red range
+    if is_red:
+        print("Detected RED target - using wraparound handling")
+    
+    print(f"Tolerances: LAB={LAB_TOLERANCE}, HSV=({HSV_HUE_TOLERANCE}, {HSV_SAT_TOLERANCE}, {HSV_VAL_TOLERANCE})")
+    print("="*70)
+    
+    # Sample frames
+    frames = sample_frames_from_video(video_path, NUM_FRAMES)
+    reference_frame = frames[len(frames) // 2]
+    
+    # Create composite mask
+    composite = create_composite_mask(
+        frames,
+        target_lab,
+        target_hsv,
+        is_red,
+        debug_dir if DEBUG else None
+    )
+    
+    # Detect and group holds
+    hold_ids, hold_positions, vis = filter_and_group_contours(composite, reference_frame)
+    
+    # Save outputs
+    cv2.imwrite(str(output_path / "hold_mask_composite.jpg"), composite)
+    cv2.imwrite(str(output_path / "holds_debug.jpg"), vis)
+    
+    holds_json = output_path / "hold_positions_auto.json"
+    with open(holds_json, "w") as f:
         json.dump(hold_positions, f, indent=2)
-
-    print(f"[hold_detection] Saved {len(hold_positions)} hold positions to {save_path}")
-    print(f"[hold_detection] Saved overlay to {overlay_path}")
+    
+    # Save detected color info
+    color_info = {
+        "target_lab": target_lab.tolist(),
+        "target_hsv": target_hsv.tolist(),
+        "is_red": bool(is_red),
+        "num_holds": len(hold_positions)
+    }
+    with open(output_path / "detected_color.json", "w") as f:
+        json.dump(color_info, f, indent=2)
+    
+    print("="*70)
+    print(f"✅ DETECTED {len(hold_positions)} HOLDS")
+    print("="*70)
+    print(f"Saved to: {holds_json}")
+    print(f"Visualization: {output_path / 'holds_debug.jpg'}")
+    if DEBUG:
+        print(f"Debug output: {debug_dir}/")
+    
     return hold_ids, hold_positions
 
-def is_likely_body_part(contour, frame):
-    """Check if contour is likely a body part based on shape."""
-    area = cv2.contourArea(contour)
-    hull = cv2.convexHull(contour)
-    hull_area = cv2.contourArea(hull)
-    
-    # Solidity: how "solid" the shape is (holds should be fairly solid)
-    solidity = area / hull_area if hull_area > 0 else 0
-    
-    # Very elongated shapes are likely limbs
-    x, y, w, h = cv2.boundingRect(contour)
-    aspect_ratio = max(w, h) / min(w, h) if min(w, h) > 0 else 0
-    
-    # Filter out:
-    # - Very irregular shapes (low solidity)
-    # - Very elongated (high aspect ratio)
-    return solidity < 0.5 or aspect_ratio > 4.0
 
 def build_holds_json_from_video(
     video_path: str,
     output_json: str = "output/hold_positions_auto.json",
     debug_image_out: str = "output/holds_debug.jpg",
-    sample_frame_index: int = 0,  # unused, kept for compatibility
-    
+    **kwargs
 ) -> str:
-    """
-    Wrapper expected by run_climb_pipeline.py.
-    """
-    _, _holds = detect_holds_from_video(
-        video_path,
-        ref_lab=None,
-        ref_hsv=None,
-        save_path=output_json,
-        overlay_path=debug_image_out,
-        composite_mask_path="output/hold_mask_composite.jpg",
-        
-    )
-
-    
+    """Wrapper for backward compatibility with existing pipeline."""
+    detect_holds_v2(video_path, output_dir="output")
     return output_json
-
-    
 
 
 if __name__ == "__main__":
-    video = "Vids/climbVid.mov"
-    build_holds_json_from_video(video)
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Detect climbing holds from video")
+    parser.add_argument("--video", "-v", required=True, help="Path to video file")
+    parser.add_argument("--output", "-o", default="output", help="Output directory")
+    
+    args = parser.parse_args()
+    detect_holds_v2(args.video, output_dir=args.output)

@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climb Analysis Pipeline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #333;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+        
+        .progress {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .progress-bar {
+            background: #555;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            height: 100%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .video-container {
+            background: #222;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        video {
+            width: 100%;
+            max-height: 600px;
+            border-radius: 8px;
+            background: #000;
+        }
+        
+        .video-controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .step {
+            background: #222;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .step.active {
+            display: block;
+        }
+        
+        .step h2 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #aaa;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: #333;
+            border: 2px solid #444;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 16px;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        .canvas-container {
+            position: relative;
+            margin: 20px 0;
+            display: inline-block;
+        }
+        
+        #colorCanvas {
+            cursor: crosshair;
+            border: 2px solid #444;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .color-swatches {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .color-swatch {
+            width: 60px;
+            height: 60px;
+            border: 3px solid #fff;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .color-swatch .remove {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .holds-viz {
+            margin: 20px 0;
+        }
+        
+        .holds-viz img {
+            max-width: 100%;
+            border-radius: 8px;
+            border: 2px solid #444;
+        }
+        
+        .moves-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .move-card {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid #444;
+        }
+        
+        .move-card img {
+            width: 100%;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        
+        .move-card h4 {
+            color: #4CAF50;
+            margin-bottom: 8px;
+        }
+        
+        .move-card p {
+            color: #aaa;
+            font-size: 0.9em;
+            margin: 4px 0;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        button.secondary {
+            background: #555;
+        }
+        
+        button.secondary:hover {
+            background: #666;
+        }
+        
+        button.danger {
+            background: #f44336;
+        }
+        
+        button.danger:hover {
+            background: #da190b;
+        }
+        
+        .rating-scale {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        
+        .rating-button {
+            flex: 1;
+            padding: 15px;
+            background: #333;
+            border: 2px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .rating-button:hover {
+            border-color: #4CAF50;
+            background: #3a3a3a;
+        }
+        
+        .rating-button.selected {
+            background: #4CAF50;
+            border-color: #4CAF50;
+        }
+        
+        .rating-button .label {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .rating-button .desc {
+            font-size: 0.85em;
+            color: #aaa;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .info-box {
+            background: #2a2a2a;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .success-message {
+            background: #1b5e20;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧗 Climb Analysis Pipeline</h1>
+            <p id="videoProgress">Ready to start</p>
+        </div>
+        
+        <div class="progress" id="progressBar">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+            </div>
+            <div style="text-align: center; color: #aaa;" id="progressText">Initializing...</div>
+        </div>
+        
+        <!-- Video Player (Always visible once started) -->
+        <div class="video-container" id="videoContainer">
+            <video id="videoPlayer" controls>
+                Your browser does not support video playback.
+            </video>
+            <div class="video-controls">
+                <button onclick="document.getElementById('videoPlayer').currentTime = 0">⏮️ Restart</button>
+                <button onclick="document.getElementById('videoPlayer').play()">▶️ Play</button>
+                <button onclick="document.getElementById('videoPlayer').pause()">⏸️ Pause</button>
+                <button class="danger" onclick="skipVideo()" style="margin-left: auto;">⏭️ Skip Video</button>
+            </div>
+        </div>
+        
+        <!-- Step 1: Climber Setup -->
+        <div class="step active" id="step1">
+            <h2>Step 1: Climber Information</h2>
+            <div class="info-box">
+                <p>Enter your information once - this will be saved for all videos.</p>
+            </div>
+            
+            <div class="form-group">
+                <label>Height (inches)</label>
+                <input type="number" id="climberHeight" value="70" step="0.5">
+            </div>
+            
+            <div class="form-group">
+                <label>Wingspan (inches)</label>
+                <input type="number" id="climberWingspan" value="70" step="0.5">
+            </div>
+            
+            <div class="form-group">
+                <label>Skill Level</label>
+                <select id="climberSkill">
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate" selected>Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                </select>
+            </div>
+            
+            <div class="button-group">
+                <button onclick="saveClimberInfo()">Start Processing Videos →</button>
+            </div>
+        </div>
+        
+        <!-- Step 2: Hold Color Selection -->
+        <div class="step" id="step2">
+            <h2>Step 2: Select Hold Colors</h2>
+            <div class="info-box">
+                <p><strong>Instructions:</strong> Click on holds in the image to select their colors. You can select multiple colors. Click "Preview Holds" to see detection, or "Confirm" when ready.</p>
+            </div>
+            
+            <div class="canvas-container">
+                <canvas id="colorCanvas"></canvas>
+            </div>
+            
+            <div class="color-swatches" id="colorSwatches"></div>
+            
+            <div class="button-group">
+                <button onclick="previewHolds()" id="previewBtn" disabled>🔍 Preview Holds</button>
+                <button onclick="confirmHolds()" id="confirmBtn" disabled>✅ Confirm Holds</button>
+                <button class="secondary" onclick="resetColors()">🔄 Reset</button>
+            </div>
+            
+            <div class="holds-viz" id="holdsPreview" style="display: none;">
+                <h3 style="margin-top: 30px;">Hold Detection Preview</h3>
+                <img id="holdsVizImg" src="" alt="Holds visualization">
+                <p id="holdsCount" style="margin-top: 10px; color: #4CAF50;"></p>
+            </div>
+        </div>
+        
+        <!-- Step 3: Review Moves -->
+        <div class="step" id="step3">
+            <h2>Step 3: Review Detected Moves</h2>
+            <div class="info-box">
+                <p>Review the detected moves. If they look incorrect, click "Rerun Move Detection" to try again.</p>
+            </div>
+            
+            <div id="movesContainer">
+                <div class="moves-grid" id="movesGrid"></div>
+            </div>
+            
+            <div class="button-group">
+                <button onclick="rerunMoveDetection()" class="secondary">🔄 Rerun Move Detection</button>
+                <button onclick="confirmMoves()">✅ Moves Look Good →</button>
+            </div>
+        </div>
+        
+        <!-- Step 4: Climb Metadata -->
+        <div class="step" id="step4">
+            <h2>Step 4: Climb Information</h2>
+            
+            <div class="form-group">
+                <label>Route Grade (just the number)</label>
+                <input type="number" id="climbGrade" placeholder="e.g., 0, 2, 4, 6, 8" min="0" max="17">
+                <small style="color: #aaa;">Enter just the number (e.g., 6 for V6)</small>
+            </div>
+            
+            <div class="form-group">
+                <label>Wall Angle</label>
+                <div class="rating-scale" id="wallAngleScale">
+                    <div class="rating-button" data-value="-5" onclick="selectRating(-5)">
+                        <div class="label">-5</div>
+                        <div class="desc">Super Slabby</div>
+                    </div>
+                    <div class="rating-button" data-value="-3" onclick="selectRating(-3)">
+                        <div class="label">-3</div>
+                        <div class="desc">Slabby</div>
+                    </div>
+                    <div class="rating-button" data-value="0" onclick="selectRating(0)">
+                        <div class="label">0</div>
+                        <div class="desc">Vertical</div>
+                    </div>
+                    <div class="rating-button" data-value="3" onclick="selectRating(3)">
+                        <div class="label">+3</div>
+                        <div class="desc">Overhung</div>
+                    </div>
+                    <div class="rating-button" data-value="5" onclick="selectRating(5)">
+                        <div class="label">+5</div>
+                        <div class="desc">Super Overhung</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Gym Name (optional)</label>
+                <input type="text" id="gymName" placeholder="e.g., Movement Gym">
+            </div>
+            
+            <div class="form-group">
+                <label>Notes (optional)</label>
+                <input type="text" id="climbNotes" placeholder="e.g., Crimpy problem, nice moves">
+            </div>
+            
+            <div class="button-group">
+                <button onclick="saveClimb()">💾 Save & Next Video →</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentVideoPath = null;
+        let selectedColors = [];
+        let selectedWallAngle = 0;
+        let currentHolds = null;
+        let videoIndex = 0;
+        let totalVideos = 0;
+        
+        // Initialize
+        async function saveClimberInfo() {
+            const height = document.getElementById('climberHeight').value;
+            const wingspan = document.getElementById('climberWingspan').value;
+            const skill = document.getElementById('climberSkill').value;
+            
+            const response = await fetch('/api/setup_climber', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({height, wingspan, skill})
+            });
+            
+            if (response.ok) {
+                await loadNextVideo();
+            }
+        }
+        
+        async function loadNextVideo() {
+            showLoading();
+            
+            const response = await fetch('/api/get_current_video');
+            const data = await response.json();
+            
+            if (data.done) {
+                showComplete();
+                return;
+            }
+            
+            currentVideoPath = data.video_path;
+            videoIndex = data.index;
+            totalVideos = data.total;
+            
+            // Update progress
+            document.getElementById('videoProgress').textContent = 
+                `Video ${videoIndex} of ${totalVideos}: ${data.filename}`;
+            document.getElementById('progressBar').style.display = 'block';
+            updateProgress(0, 'Loading video...');
+            
+            // Setup video player
+            const video = document.getElementById('videoPlayer');
+            video.src = `/videos/${data.filename}`;
+            document.getElementById('videoContainer').style.display = 'block';
+            
+            // Setup canvas for color picking
+            const canvas = document.getElementById('colorCanvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.onload = function() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                canvas.onclick = handleCanvasClick;
+            };
+            img.src = data.frame;
+            
+            // Reset state
+            selectedColors = [];
+            updateColorSwatches();
+            
+            // Show step 2
+            showStep(2);
+            updateProgress(25, 'Select hold colors');
+            hideLoading();
+        }
+        
+        function handleCanvasClick(e) {
+            const canvas = document.getElementById('colorCanvas');
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
+            const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
+            
+            // Sample 5x5 area
+            const imageData = ctx.getImageData(Math.max(0, x-2), Math.max(0, y-2), 5, 5);
+            const pixels = imageData.data;
+            
+            // Average color
+            let r = 0, g = 0, b = 0, count = 0;
+            for (let i = 0; i < pixels.length; i += 4) {
+                r += pixels[i];
+                g += pixels[i + 1];
+                b += pixels[i + 2];
+                count++;
+            }
+            r = Math.floor(r / count);
+            g = Math.floor(g / count);
+            b = Math.floor(b / count);
+            
+            // Convert BGR to LAB and HSV (simplified - server will do proper conversion)
+            const color = {
+                bgr: [b, g, r],
+                lab: rgbToLab(r, g, b),
+                hsv: rgbToHsv(r, g, b),
+                rgb: [r, g, b]
+            };
+            
+            selectedColors.push(color);
+            updateColorSwatches();
+            
+            document.getElementById('previewBtn').disabled = false;
+            document.getElementById('confirmBtn').disabled = false;
+        }
+        
+        function rgbToLab(r, g, b) {
+            // Simplified conversion - server does proper one
+            const l = (r + g + b) / 3;
+            const a = (r - g) / 2 + 128;
+            const bb = (r + g - 2*b) / 4 + 128;
+            return [l, a, bb];
+        }
+        
+        function rgbToHsv(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const d = max - min;
+            const s = max === 0 ? 0 : d / max;
+            const v = max;
+            
+            let h = 0;
+            if (d !== 0) {
+                if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+                else if (max === g) h = ((b - r) / d + 2) / 6;
+                else h = ((r - g) / d + 4) / 6;
+            }
+            
+            return [Math.floor(h * 180), Math.floor(s * 255), Math.floor(v * 255)];
+        }
+        
+        function updateColorSwatches() {
+            const container = document.getElementById('colorSwatches');
+            container.innerHTML = '';
+            
+            selectedColors.forEach((color, idx) => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.background = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove';
+                removeBtn.textContent = '×';
+                removeBtn.onclick = () => removeColor(idx);
+                
+                swatch.appendChild(removeBtn);
+                container.appendChild(swatch);
+            });
+        }
+        
+        function removeColor(idx) {
+            selectedColors.splice(idx, 1);
+            updateColorSwatches();
+            
+            if (selectedColors.length === 0) {
+                document.getElementById('previewBtn').disabled = true;
+                document.getElementById('confirmBtn').disabled = true;
+            }
+        }
+        
+        function resetColors() {
+            selectedColors = [];
+            updateColorSwatches();
+            document.getElementById('holdsPreview').style.display = 'none';
+            document.getElementById('previewBtn').disabled = true;
+            document.getElementById('confirmBtn').disabled = true;
+        }
+        
+        async function previewHolds() {
+            showLoading();
+            updateProgress(40, 'Detecting holds...');
+            
+            const response = await fetch('/api/detect_holds', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    video_path: currentVideoPath,
+                    colors: selectedColors
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('holdsVizImg').src = data.visualization;
+                document.getElementById('holdsCount').textContent = 
+                    `✅ Detected ${data.num_holds} holds`;
+                document.getElementById('holdsPreview').style.display = 'block';
+                currentHolds = data.holds;
+            }
+            
+            hideLoading();
+        }
+        
+        async function confirmHolds() {
+            if (!currentHolds) {
+                await previewHolds();
+            }
+            
+            showLoading();
+            updateProgress(50, 'Detecting moves...');
+            
+            const response = await fetch('/api/detect_moves', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({video_path: currentVideoPath})
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                displayMoves(data.moves, data.snapshots);
+                showStep(3);
+                updateProgress(75, 'Review moves');
+            }
+            
+            hideLoading();
+        }
+        
+        function displayMoves(moves, snapshots) {
+            const grid = document.getElementById('movesGrid');
+            grid.innerHTML = '';
+            
+            moves.forEach((move, idx) => {
+                const card = document.createElement('div');
+                card.className = 'move-card';
+                
+                let html = '';
+                if (snapshots[idx]) {
+                    html += `<img src="${snapshots[idx]}" alt="Move ${idx+1}">`;
+                }
+                
+                html += `
+                    <h4>Move ${move.move_index + 1}</h4>
+                    <p><strong>Limb:</strong> ${move.limb}</p>
+                    <p><strong>From:</strong> ${move.from_hold} <strong>→ To:</strong> ${move.to_hold}</p>
+                    <p><strong>Type:</strong> ${move.type}</p>
+                    <p><strong>Distance:</strong> ${move.hold_distance_px.toFixed(0)}px</p>
+                `;
+                
+                card.innerHTML = html;
+                grid.appendChild(card);
+            });
+        }
+        
+        async function rerunMoveDetection() {
+            await confirmHolds();
+        }
+        
+        function confirmMoves() {
+            showStep(4);
+            updateProgress(90, 'Enter climb info');
+        }
+        
+        function selectRating(value) {
+            selectedWallAngle = value;
+            document.querySelectorAll('.rating-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelector(`[data-value="${value}"]`).classList.add('selected');
+        }
+        
+        async function saveClimb() {
+            const grade = document.getElementById('climbGrade').value;
+            const gym = document.getElementById('gymName').value;
+            const notes = document.getElementById('climbNotes').value;
+            
+            if (!grade) {
+                alert('Please enter a grade');
+                return;
+            }
+            
+            showLoading();
+            updateProgress(95, 'Saving climb data...');
+            
+            const response = await fetch('/api/save_climb', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    grade,
+                    wall_angle: selectedWallAngle,
+                    gym,
+                    notes
+                })
+            });
+            
+            if (response.ok) {
+                updateProgress(100, 'Complete!');
+                
+                // Move to next video
+                await fetch('/api/next_video', {method: 'POST'});
+                
+                // Reset for next video
+                setTimeout(() => {
+                    document.getElementById('climbGrade').value = '';
+                    document.getElementById('gymName').value = '';
+                    document.getElementById('climbNotes').value = '';
+                    document.querySelectorAll('.rating-button').forEach(btn => {
+                        btn.classList.remove('selected');
+                    });
+                    selectedWallAngle = 0;
+                    
+                    loadNextVideo();
+                }, 1000);
+            }
+            
+            hideLoading();
+        }
+        
+        async function skipVideo() {
+            if (!confirm('Skip this video?')) return;
+            
+            await fetch('/api/skip_video', {method: 'POST'});
+            loadNextVideo();
+        }
+        
+        // UI Helpers
+        function showStep(step) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById(`step${step}`).classList.add('active');
+        }
+        
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = `${percent}%`;
+            document.getElementById('progressFill').textContent = `${percent}%`;
+            document.getElementById('progressText').textContent = text;
+        }
+        
+        function showLoading() {
+            // Could add spinner
+        }
+        
+        function hideLoading() {
+            // Could remove spinner
+        }
+        
+        function showComplete() {
+            document.body.innerHTML = `
+                <div class="container">
+                    <div class="header">
+                        <h1>🎉 All Videos Processed!</h1>
+                    </div>
+                    <div class="success-message">
+                        <h2>Processing Complete</h2>
+                        <p>All ${totalVideos} videos have been analyzed and saved to the training database.</p>
+                        <p style="margin-top: 20px;">Check the <strong>batch_output/</strong> folder for results.</p>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
