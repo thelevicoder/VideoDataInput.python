@@ -218,11 +218,11 @@ def classify_crop(model, tfm, crop: np.ndarray, device: torch.device):
     return int(idx.item()), float(conf.item())
 
 
-def main():
+def main(video_path: str):
+
     project_root = Path(".")
 
     holds_json = project_root / "output" / "hold_positions_auto.json"
-    video_path = "Vids/climbVid.mov"  # Update this path if needed
     composite_mask = project_root / "output" / "hold_mask_composite.jpg"
     model_path = project_root / "models" / "hold_classifier_resnet18.pt"
     labels_path = project_root / "models" / "hold_class_labels.json"
@@ -366,4 +366,10 @@ def create_hold_gallery(debug_dir: Path, enriched: Dict, output_dir: Path):
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("video_path")
+    args = parser.parse_args()
+
+    main(args.video_path)
