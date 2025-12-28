@@ -418,6 +418,27 @@
             </div>
         </div>
         
+        <!-- Step 2.5: Select Finish Hold -->
+        <div class="step" id="step2_5">
+            <h2>Step 2.5: Select Finish Hold (Optional)</h2>
+            <div class="info-box">
+                <p><strong>Instructions:</strong> Click on the FINISH hold (where the climb ends). Move detection will stop when a hand reaches and stays on this hold.</p>
+                <p><strong>Or skip this</strong> to process the entire video without stopping.</p>
+            </div>
+            
+            <div class="canvas-container">
+                <canvas id="finishCanvas"></canvas>
+            </div>
+            
+            <div id="selectedFinishHold" style="margin: 20px 0; font-size: 1.2em; color: #4CAF50;"></div>
+            
+            <div class="button-group">
+                <button onclick="confirmFinishHold()" id="confirmFinishBtn">✅ Continue with Selected Hold →</button>
+                <button onclick="skipFinishHold()" class="secondary">⏩ Skip - Process Entire Video</button>
+                <button class="secondary" onclick="resetFinishHold()">🔄 Reset Selection</button>
+            </div>
+        </div>
+        
         <!-- Step 3: Review Moves -->
         <div class="step" id="step3">
             <h2>Step 3: Review Detected Moves</h2>
@@ -492,6 +513,8 @@
         let selectedColors = [];
         let selectedWallAngle = 0;
         let currentHolds = null;
+        let selectedFinishHold = null;
+        let finishSelectImage = null;
         let videoIndex = 0;
         let totalVideos = 0;
         
@@ -682,6 +705,7 @@
                     `✅ Detected ${data.num_holds} holds`;
                 document.getElementById('holdsPreview').style.display = 'block';
                 currentHolds = data.holds;
+                finishSelectImage = data.finish_select_img;  // Save for finish selection
             }
             
             hideLoading();
@@ -692,13 +716,100 @@
                 await previewHolds();
             }
             
+            // Get finish select image from server response
             showLoading();
-            updateProgress(50, 'Detecting moves...');
+            updateProgress(50, 'Setting up finish hold selection...');
+            
+            // Show step 2.5 (finish hold selection)
+            const canvas = document.getElementById('finishCanvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = function() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                canvas.onclick = handleFinishHoldClick;
+            };
+            
+            img.src = finishSelectImage;
+            
+            showStep('2_5');
+            updateProgress(55, 'Select finish hold');
+            hideLoading();
+        }
+        
+        function handleFinishHoldClick(e) {
+            const canvas = document.getElementById('finishCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
+            const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
+            
+            // Find closest hold to click
+            let closestHold = null;
+            let closestDist = Infinity;
+            
+            for (const [holdId, pos] of Object.entries(currentHolds)) {
+                const dist = Math.sqrt((x - pos[0])**2 + (y - pos[1])**2);
+                if (dist < closestDist && dist < 50) {
+                    closestDist = dist;
+                    closestHold = holdId;
+                }
+            }
+            
+            if (closestHold) {
+                selectedFinishHold = closestHold;
+                document.getElementById('selectedFinishHold').textContent = 
+                    `✅ Selected finish hold: ${closestHold}`;
+                
+                // Highlight selected hold on canvas
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Draw highlight on selected hold
+                    const pos = currentHolds[closestHold];
+                    ctx.strokeStyle = '#00FF00';
+                    ctx.lineWidth = 5;
+                    ctx.beginPath();
+                    ctx.arc(pos[0], pos[1], 35, 0, 2 * Math.PI);
+                    ctx.stroke();
+                };
+                img.src = finishSelectImage;
+            }
+        }
+        
+        function resetFinishHold() {
+            selectedFinishHold = null;
+            document.getElementById('selectedFinishHold').textContent = '';
+            
+            // Redraw canvas
+            const canvas = document.getElementById('finishCanvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = finishSelectImage;
+        }
+        
+        async function skipFinishHold() {
+            selectedFinishHold = null;
+            await confirmFinishHold();
+        }
+        
+        async function confirmFinishHold() {
+            showLoading();
+            updateProgress(60, 'Detecting moves...');
             
             const response = await fetch('/api/detect_moves', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({video_path: currentVideoPath})
+                body: JSON.stringify({
+                    video_path: currentVideoPath,
+                    finish_hold: selectedFinishHold  // null if skipped
+                })
             });
             
             const data = await response.json();
@@ -739,7 +850,7 @@
         }
         
         async function rerunMoveDetection() {
-            await confirmHolds();
+            await confirmFinishHold();
         }
         
         function confirmMoves() {

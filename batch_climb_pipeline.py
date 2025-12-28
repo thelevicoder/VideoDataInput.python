@@ -405,7 +405,7 @@ def process_single_video(
         holds_json = video_output / "hold_positions_auto.json"
     
     # Step 4: Detect and classify moves
-    print("\n[4/6] Detecting Moves...")
+    print("\n[4/7] Detecting Moves...")
     try:
         climb_data_path = detect_and_classify_moves(
             str(video_path),
@@ -419,8 +419,45 @@ def process_single_video(
         traceback.print_exc()
         return False
     
-    # Step 5: Export to training format
-    print("\n[5/6] Exporting Training Data...")
+    # Step 5: Classify holds
+    print("\n[5/7] Classifying Holds...")
+    try:
+        # Check if classifier exists
+        classifier_path = Path("move_classifier/hold_classifier.h5")
+        if classifier_path.exists():
+            # Run hold classification
+            import sys
+            old_argv = sys.argv
+            sys.argv = [
+                'enrich',
+                '--video', str(video_path),
+                '--holds', str(holds_json),
+                '--output', str(video_output)
+            ]
+            
+            try:
+                from enrich_holds_with_classifier_multiframe import main as enrich_holds
+                enrich_holds()
+                
+                # Use enriched holds if created
+                enriched_holds_path = video_output / "hold_positions_enriched.json"
+                if enriched_holds_path.exists():
+                    holds_json = enriched_holds_path
+                    print(f"✓ Holds classified and enriched")
+                else:
+                    print("⚠ Enrichment ran but no output - using original holds")
+            finally:
+                sys.argv = old_argv
+        else:
+            print("⚠ Hold classifier not found - skipping hold classification")
+            print(f"   Looking for: {classifier_path.absolute()}")
+    except Exception as e:
+        print(f"⚠ Hold classification failed (non-critical): {e}")
+        import traceback
+        traceback.print_exc()
+    
+    # Step 6: Export to training format
+    print("\n[6/7] Exporting Training Data...")
     try:
         # Load climb data
         with open(climb_data_path, 'r') as f:
@@ -447,8 +484,8 @@ def process_single_video(
     except Exception as e:
         print(f"⚠ Training export failed (non-critical): {e}")
     
-    # Step 6: Summary
-    print("\n[6/6] Video Processing Complete!")
+    # Step 7: Summary
+    print("\n[7/7] Video Processing Complete!")
     print("="*70)
     print(f"✅ Output: {video_output}")
     print(f"✅ Grade: {metadata['grade']}")
