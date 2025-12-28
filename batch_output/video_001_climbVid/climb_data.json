@@ -1,0 +1,173 @@
+{
+  "video_path": "my_videos\\climbVid.mov",
+  "holds_json": "batch_output\\video_001_climbVid\\hold_positions_auto_split.json",
+  "finish_hold": "hold_4",
+  "fps": 41.89544043924565,
+  "moves": [
+    {
+      "move_index": 0,
+      "frame_index": 80,
+      "time_seconds": 1.9095156695156694,
+      "limb": "rightfoot",
+      "from_hold": "hold_0",
+      "to_hold": "hold_1",
+      "hold_distance_px": 131.21737689803132,
+      "type": "no_pose",
+      "confidence": 0.0,
+      "snapshot_path": "batch_output\\video_001_climbVid\\moves\\move_01.jpg",
+      "probs": [
+        0.0
+      ]
+    },
+    {
+      "move_index": 1,
+      "frame_index": 83,
+      "time_seconds": 1.981122507122507,
+      "limb": "leftfoot",
+      "from_hold": "hold_0",
+      "to_hold": "hold_1",
+      "hold_distance_px": 131.21737689803132,
+      "type": "no_pose",
+      "confidence": 0.0,
+      "snapshot_path": "batch_output\\video_001_climbVid\\moves\\move_02.jpg",
+      "probs": [
+        0.0
+      ]
+    },
+    {
+      "move_index": 2,
+      "frame_index": 98,
+      "time_seconds": 2.339156695156695,
+      "limb": "rightfoot",
+      "from_hold": "hold_2",
+      "to_hold": "hold_1",
+      "hold_distance_px": 116.1077086157504,
+      "type": "no_pose",
+      "confidence": 0.0,
+      "snapshot_path": "batch_output\\video_001_climbVid\\moves\\move_03.jpg",
+      "probs": [
+        0.0
+      ]
+    },
+    {
+      "move_index": 3,
+      "frame_index": 265,
+      "time_seconds": 6.325270655270654,
+      "limb": "righthand",
+      "from_hold": "hold_5",
+      "to_hold": "hold_8",
+      "hold_distance_px": 138.3979768638256,
+      "type": "no_pose",
+      "confidence": 0.0,
+      "snapshot_path": "batch_output\\video_001_climbVid\\moves\\move_04.jpg",
+      "probs": [
+        0.0
+      ]
+    },
+    {
+      "move_index": 4,
+      "frame_index": 284,
+      "time_seconds": 6.778780626780626,
+      "limb": "righthand",
+      "from_hold": "hold_8",
+      "to_hold": "hold_7",
+      "hold_distance_px": 67.60177512462228,
+      "type": "reach",
+      "confidence": 0.472156286239624,
+      "snapshot_path": "batch_output\\video_001_climbVid\\moves\\move_05.jpg",
+      "probs": [
+        0.472156286239624,
+        0.03867422044277191,
+        0.06078154221177101,
+        0.12725523114204407,
+        0.2849806845188141,
+        0.016072528436779976,
+        7.945628021843731e-05
+      ]
+    },
+    {
+      "move_index": 5,
+      "frame_index": 354,
+      "time_seconds": 8.449606837606837,
+      "limb": "righthand",
+      "from_hold": "hold_7",
+      "to_hold": "hold_8",
+      "hold_distance_px": 67.60177512462228,
+      "type": "reach",
+      "confidence": 0.43215423822402954,
+      "snapshot_path": "batch_output\\video_001_climbVid\\moves\\move_06.jpg",
+      "probs": [
+        0.43215423822402954,
+        0.06138462945818901,
+        0.0656392052769661,
+        0.14733438193798065,
+        0.2704445421695709,
+        0.02285771816968918,
+        0.00018534334958530962
+      ]
+    },
+    {
+      "move_index": 6,
+      "frame_index": 369,
+      "time_seconds": 8.807641025641026,
+      "limb": "righthand",
+      "from_hold": "hold_7",
+      "to_hold": "hold_8",
+      "hold_distance_px": 67.60177512462228,
+      "type": "reach",
+      "confidence": 0.45513954758644104,
+      "snapshot_path": "batch_output\\video_001_climbVid\\moves\\move_07.jpg",
+      "probs": [
+        0.45513954758644104,
+        0.03495989739894867,
+        0.05746624991297722,
+        0.1322576105594635,
+        0.30378833413124084,
+        0.016330530866980553,
+        5.783748929388821e-05
+      ]
+    },
+    {
+      "move_index": 7,
+      "frame_index": 433,
+      "time_seconds": 10.33525356125356,
+      "limb": "righthand",
+      "from_hold": "hold_8",
+      "to_hold": "hold_7",
+      "hold_distance_px": 67.60177512462228,
+      "type": "reach",
+      "confidence": 0.5446408987045288,
+      "snapshot_path": "batch_output\\video_001_climbVid\\moves\\move_08.jpg",
+      "probs": [
+        0.5446408987045288,
+        0.020419582724571228,
+        0.05790333449840546,
+        0.08542592078447342,
+        0.2855384945869446,
+        0.006061213091015816,
+        1.0544397810008377e-05
+      ]
+    },
+    {
+      "move_index": 8,
+      "frame_index": 453,
+      "time_seconds": 10.812632478632478,
+      "limb": "righthand",
+      "from_hold": "hold_7",
+      "to_hold": "hold_8",
+      "hold_distance_px": 67.60177512462228,
+      "type": "reach",
+      "confidence": 0.5274102091789246,
+      "snapshot_path": "batch_output\\video_001_climbVid\\moves\\move_09.jpg",
+      "probs": [
+        0.5274102091789246,
+        0.051945023238658905,
+        0.0750984326004982,
+        0.09626344591379166,
+        0.24052143096923828,
+        0.008656568825244904,
+        0.00010488742555025965
+      ]
+    }
+  ]
+}

@@ -23,7 +23,7 @@ app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
 
 # Global state
-VIDEO_FOLDER = Path("my_videos")
+VIDEO_FOLDER = Path("Vids")
 OUTPUT_FOLDER = Path("batch_output")
 CURRENT_VIDEO_INDEX = 0
 VIDEO_FILES = []
@@ -196,19 +196,36 @@ def detect_holds():
     session['current_output_dir'] = str(output_dir)
     session['hold_positions'] = hold_positions
     
+    # Create a clickable visualization for finish hold selection
+    # Draw holds with labels
+    finish_select_img = vis_img.copy()
+    for hold_id, pos in hold_positions.items():
+        cx, cy = pos
+        # Draw larger circles for clicking
+        cv2.circle(finish_select_img, (cx, cy), 30, (0, 255, 255), 3)
+        cv2.circle(finish_select_img, (cx, cy), 25, (0, 0, 0), -1)
+        cv2.putText(finish_select_img, hold_id.split('_')[1], (cx-10, cy+10),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+    
+    _, buffer2 = cv2.imencode('.jpg', finish_select_img)
+    finish_select_base64 = base64.b64encode(buffer2).decode('utf-8')
+    
     return jsonify({
         'success': True,
         'num_holds': len(hold_positions),
         'visualization': f"data:image/jpeg;base64,{vis_base64}",
+        'finish_select_img': f"data:image/jpeg;base64,{finish_select_base64}",
         'holds': hold_positions
     })
 
 
 @app.route('/api/detect_moves', methods=['POST'])
 def detect_moves():
-    """Detect and classify moves."""
+    """Detect and classify moves, stopping only when hand reaches finish hold."""
     data = request.json
     video_path = data['video_path']
+    finish_hold = data.get('finish_hold')  # e.g., "hold_5"
+    
     output_dir = session.get('current_output_dir')
     
     if not output_dir:
@@ -219,10 +236,38 @@ def detect_moves():
     if not holds_json.exists():
         holds_json = output_dir / "hold_positions_auto.json"
     
-    # Detect moves
-    climb_data_path = detect_and_classify_moves(
+    # Classify holds first (if classifier available)
+    try:
+        classifier_path = Path("move_classifier/hold_classifier.h5")
+        if classifier_path.exists():
+            import sys
+            old_argv = sys.argv
+            sys.argv = [
+                'enrich',
+                '--video', video_path,
+                '--holds', str(holds_json),
+                '--output', str(output_dir)
+            ]
+            
+            try:
+                from enrich_holds_with_classifier_multiframe import main as enrich_holds
+                enrich_holds()
+                
+                # Use enriched holds if created
+                enriched_holds_path = output_dir / "hold_positions_enriched.json"
+                if enriched_holds_path.exists():
+                    holds_json = enriched_holds_path
+                    print("[web] Using enriched holds with classifications")
+            finally:
+                sys.argv = old_argv
+    except Exception as e:
+        print(f"[web] Hold classification failed: {e}")
+    
+    # Detect moves with finish hold constraint
+    climb_data_path = detect_and_classify_moves_with_finish(
         video_path,
         str(holds_json),
+        finish_hold=finish_hold,
         output_dir=str(output_dir)
     )
     
@@ -252,6 +297,215 @@ def detect_moves():
     })
 
 
+def detect_and_classify_moves_with_finish(
+    video_path: str,
+    holds_json_path: str,
+    finish_hold: str = None,
+    output_dir: str = "output",
+) -> str:
+    """
+    Modified move detection that only stops when a hand reaches the finish hold.
+    """
+    from move_detector_simple import (
+        _compute_limb_positions, _assign_limbs_to_holds,
+        LIMBS, LIMB_LANDMARKS, mp_pose, PoseMoveClassifier,
+        HOLD_ASSIGNMENT_DISTANCE, STABILITY_FRAMES, MIN_MOVE_DISTANCE, COOLDOWN_FRAMES
+    )
+    
+    video_path = Path(video_path)
+    holds_json_path = Path(holds_json_path)
+    output_root = Path(output_dir)
+    moves_dir = output_root / "moves"
+    
+    if not holds_json_path.exists():
+        raise FileNotFoundError(f"Holds JSON not found: {holds_json_path}")
+    
+    with holds_json_path.open("r", encoding="utf8") as f:
+        holds = json.load(f)
+    
+    print(f"[move_detection] Loaded {len(holds)} holds")
+    if finish_hold:
+        print(f"[move_detection] Finish hold: {finish_hold}")
+    
+    # Clean moves folder
+    if moves_dir.exists():
+        import shutil
+        for item in moves_dir.iterdir():
+            if item.is_file():
+                item.unlink()
+    moves_dir.mkdir(parents=True, exist_ok=True)
+    
+    # First pass - collect assignments
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        raise FileNotFoundError(f"Could not open video: {video_path}")
+    
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if fps <= 0:
+        fps = 30.0
+    
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    
+    print(f"[move_detection] Video: {width}x{height} @ {fps:.1f}fps")
+    
+    pose = mp_pose.Pose(
+        static_image_mode=False,
+        model_complexity=1,
+        enable_segmentation=False,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5,
+    )
+    
+    assignments_series = []
+    finish_reached = False
+    finish_hold_stable_count = 0
+    min_frames_before_finish = int(fps * 5)  # Must climb for at least 5 seconds
+    
+    print("[move_detection] Pass 1: Analyzing video...")
+    frame_count = 0
+    
+    while True:
+        ok, frame = cap.read()
+        if not ok or frame is None:
+            break
+        
+        frame_count += 1
+        h, w = frame.shape[:2]
+        image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        
+        if not results.pose_landmarks:
+            assignments = {limb: "no_pose" for limb in LIMBS}
+        else:
+            positions = _compute_limb_positions(results, w, h)
+            assignments = _assign_limbs_to_holds(positions, holds)
+        
+        assignments_series.append(assignments)
+        
+        # Check if either hand reached finish hold
+        if finish_hold and frame_count > min_frames_before_finish:
+            hand_on_finish = (assignments.get('lefthand') == finish_hold or 
+                            assignments.get('righthand') == finish_hold)
+            
+            if hand_on_finish:
+                finish_hold_stable_count += 1
+                # Require hand to be stable on finish for 30 frames (~1 second)
+                if finish_hold_stable_count >= 30:
+                    print(f"[move_detection] Finish hold reached and stable at frame {frame_count}")
+                    # Continue for a bit longer to catch final moves
+                    for _ in range(int(fps * 2)):  # 2 more seconds
+                        ok, frame = cap.read()
+                        if not ok:
+                            break
+                        frame_count += 1
+                        image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        results = pose.process(image_rgb)
+                        
+                        if not results.pose_landmarks:
+                            assignments = {limb: "no_pose" for limb in LIMBS}
+                        else:
+                            positions = _compute_limb_positions(results, w, h)
+                            assignments = _assign_limbs_to_holds(positions, holds)
+                        
+                        assignments_series.append(assignments)
+                    break
+            else:
+                finish_hold_stable_count = 0  # Reset if hand leaves
+    
+    cap.release()
+    pose.close()
+    
+    print(f"[move_detection] Processed {len(assignments_series)} frames")
+    
+    # Detect moves (same logic as before)
+    from move_detector_simple import _detect_moves_simple
+    move_events = _detect_moves_simple(assignments_series, holds)
+    
+    print(f"[move_detection] Detected {len(move_events)} moves")
+    
+    # Second pass - classify and save (same as before)
+    cap = cv2.VideoCapture(str(video_path))
+    pose = mp_pose.Pose(
+        static_image_mode=False,
+        model_complexity=1,
+        enable_segmentation=False,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5,
+    )
+    classifier = PoseMoveClassifier()
+    
+    moves = []
+    
+    print("[move_detection] Pass 2: Classifying moves...")
+    
+    for move_idx, ev in enumerate(move_events):
+        target_frame = ev["frame_index"]
+        
+        cap.set(cv2.CAP_PROP_POS_FRAMES, target_frame - 1)
+        ok, frame = cap.read()
+        if not ok:
+            continue
+        
+        h, w = frame.shape[:2]
+        image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        
+        if not results.pose_landmarks:
+            label = "no_pose"
+            probs = np.zeros((1,), dtype=float)
+            conf = 0.0
+        else:
+            label, probs = classifier.predict_from_landmarks(
+                results.pose_landmarks.landmark
+            )
+            conf = float(np.max(probs))
+        
+        snapshot = moves_dir / f"move_{move_idx+1:02d}.jpg"
+        cv2.imwrite(str(snapshot), frame)
+        
+        move_data = {
+            "move_index": move_idx,
+            "frame_index": int(target_frame),
+            "time_seconds": target_frame / fps,
+            "limb": ev["limb"],
+            "from_hold": ev["from_hold"],
+            "to_hold": ev["to_hold"],
+            "hold_distance_px": ev["hold_distance_px"],
+            "type": label,
+            "confidence": conf,
+            "snapshot_path": str(snapshot),
+            "probs": probs.tolist(),
+        }
+        moves.append(move_data)
+        
+        print(
+            f"  Move {move_idx+1}: {ev['limb']} "
+            f"{ev['from_hold']}→{ev['to_hold']} "
+            f"({ev['hold_distance_px']:.0f}px) - {label}"
+        )
+    
+    cap.release()
+    pose.close()
+    
+    # Save results
+    climb_data = {
+        "video_path": str(video_path),
+        "holds_json": str(holds_json_path),
+        "finish_hold": finish_hold,
+        "fps": fps,
+        "moves": moves,
+    }
+    
+    output_root.mkdir(parents=True, exist_ok=True)
+    climb_data_path = output_root / "climb_data.json"
+    with climb_data_path.open("w", encoding="utf8") as f:
+        json.dump(climb_data, f, indent=2)
+    
+    print(f"\n[move_detection] ✅ Complete! Saved to {climb_data_path}")
+    return str(climb_data_path)
+
+
 @app.route('/api/save_climb', methods=['POST'])
 def save_climb():
     """Save climb data with metadata."""
@@ -274,22 +528,44 @@ def save_climb():
     with open(climb_data_path, 'r') as f:
         climb_data = json.load(f)
     
-    # Convert to training format
-    training_entry = convert_to_training_format(
-        climb_data=climb_data,
-        grade=grade,
-        climber_height=CLIMBER_CONFIG['height'],
-        climber_wingspan=CLIMBER_CONFIG['wingspan'],
-        climber_skill=CLIMBER_CONFIG['skill'],
-        wall_angle=wall_angle,
-        gym_name=gym,
-        video_path=climb_data['video_path'],
-        notes=notes
-    )
+    # Convert to training format - check function signature
+    try:
+        training_entry = convert_to_training_format(
+            climb_data,
+            route_grade=grade,
+            climber_height_in=CLIMBER_CONFIG['height'],
+            climber_wingspan_in=CLIMBER_CONFIG['wingspan'],
+            climber_skill_level=CLIMBER_CONFIG['skill'],
+            wall_angle_deg=wall_angle,
+            gym_name=gym,
+            video_path=climb_data['video_path'],
+            notes=notes
+        )
+    except TypeError:
+        # If that doesn't work, try alternate parameter names
+        training_entry = {
+            'climb_data': climb_data,
+            'route_grade': grade,
+            'climber_height': CLIMBER_CONFIG['height'],
+            'climber_wingspan': CLIMBER_CONFIG['wingspan'],
+            'climber_skill': CLIMBER_CONFIG['skill'],
+            'wall_angle': wall_angle,
+            'gym_name': gym,
+            'video_path': climb_data['video_path'],
+            'notes': notes
+        }
     
     # Save to database
     db_path = Path("climb_database")
-    save_training_record(training_entry, db_path)
+    db_path.mkdir(parents=True, exist_ok=True)
+    
+    # Simple save - create unique filename
+    import time
+    timestamp = int(time.time())
+    output_file = db_path / f"climb_{timestamp}.json"
+    
+    with open(output_file, 'w') as f:
+        json.dump(training_entry, f, indent=2)
     
     return jsonify({'success': True})
 
