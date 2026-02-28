@@ -1,0 +1,303 @@
+{
+  "hold_0": {
+    "center": [
+      192,
+      365
+    ],
+    "class": "volume",
+    "confidence": 0.9190288782119751,
+    "bbox": [
+      160,
+      320,
+      224,
+      416
+    ],
+    "size_analysis": {
+      "area_pixels": 2726.0,
+      "area_normalized": 0.0066552734375,
+      "size_quality": 1.0
+    },
+    "shape_analysis": {
+      "solidity": 0.7784123358081096,
+      "compactness": 0.16601459204055596,
+      "aspect_ratio": 1.6808510638297873,
+      "solidity_quality": 1.0,
+      "compactness_quality": 0.6664058368162223,
+      "aspect_quality": 0.875886524822695,
+      "shape_quality": 0.8474307872129724
+    },
+    "texture_analysis": {
+      "texture_variance": 1780.7824327317328,
+      "texture_quality": 0.8
+    },
+    "quality_analysis": {
+      "quality_score": 0.6296466107887797,
+      "base_quality": 0.55,
+      "confidence_modifier": 0.983805775642395,
+      "angle_modifier": 0.8500000000000001,
+      "size_modifier": 1.0,
+      "shape_modifier": 0.8474307872129724,
+      "texture_modifier": 0.8,
+      "position_modifier": 0.978515625,
+      "quality_grade": "C"
+    }
+  },
+  "hold_1": {
+    "center": [
+      256,
+      292
+    ],
+    "class": "volume",
+    "confidence": 0.999940037727356,
+    "bbox": [
+      176,
+      212,
+      312,
+      372
+    ],
+    "size_analysis": {
+      "area_pixels": 2731.0,
+      "area_normalized": 0.00666748046875,
+      "size_quality": 1.0
+    },
+    "shape_analysis": {
+      "solidity": 0.7185896592553611,
+      "compactness": 0.14270689569507425,
+      "aspect_ratio": 1.126984126984127,
+      "solidity_quality": 1.0,
+      "compactness_quality": 0.6570827582780296,
+      "aspect_quality": 1.0,
+      "shape_quality": 0.8856942527593432
+    },
+    "texture_analysis": {
+      "texture_variance": 2358.6865827235265,
+      "texture_quality": 0.8
+    },
+    "quality_analysis": {
+      "quality_score": 0.6426011233874448,
+      "base_quality": 0.55,
+      "confidence_modifier": 0.9999880075454712,
+      "angle_modifier": 0.8500000000000001,
+      "size_modifier": 1.0,
+      "shape_modifier": 0.8856942527593432,
+      "texture_modifier": 0.8,
+      "position_modifier": 0.9728125,
+      "quality_grade": "C"
+    }
+  },
+  "hold_2_0": {
+    "center": [
+      174,
+      218
+    ],
+    "class": "volume",
+    "confidence": 0.9943554401397705,
+    "bbox": [
+      94,
+      184,
+      254,
+      288
+    ],
+    "size_analysis": {
+      "area_pixels": 7284.5,
+      "area_normalized": 0.017784423828125,
+      "size_quality": 1.0
+    },
+    "shape_analysis": {
+      "solidity": 0.5695687868955002,
+      "compactness": 0.10299146770552173,
+      "aspect_ratio": 2.0114942528735633,
+      "solidity_quality": 0.8,
+      "compactness_quality": 0.6411965870822087,
+      "aspect_quality": 0.831800766283525,
+      "shape_quality": 0.7576657844552446
+    },
+    "texture_analysis": {
+      "texture_variance": 2917.5129304224106,
+      "texture_quality": 0.8
+    },
+    "quality_analysis": {
+      "quality_score": 0.6170452638431156,
+      "base_quality": 0.55,
+      "confidence_modifier": 0.9988710880279541,
+      "angle_modifier": 0.8500000000000001,
+      "size_modifier": 1.0,
+      "shape_modifier": 0.7576657844552446,
+      "texture_modifier": 0.8,
+      "position_modifier": 0.96703125,
+      "quality_grade": "C"
+    }
+  },
+  "hold_2_1": {
+    "center": [
+      118,
+      243
+    ],
+    "class": "volume",
+    "confidence": 0.9885416030883789,
+    "bbox": [
+      80,
+      184,
+      198,
+      288
+    ],
+    "size_analysis": {
+      "area_pixels": 7284.5,
+      "area_normalized": 0.017784423828125,
+      "size_quality": 1.0
+    },
+    "shape_analysis": {
+      "solidity": 0.5695687868955002,
+      "compactness": 0.10299146770552173,
+      "aspect_ratio": 2.0114942528735633,
+      "solidity_quality": 0.8,
+      "compactness_quality": 0.6411965870822087,
+      "aspect_quality": 0.831800766283525,
+      "shape_quality": 0.7576657844552446
+    },
+    "texture_analysis": {
+      "texture_variance": 2917.5129304224106,
+      "texture_quality": 0.8
+    },
+    "quality_analysis": {
+      "quality_score": 0.6175717760574729,
+      "base_quality": 0.55,
+      "confidence_modifier": 0.9977083206176758,
+      "angle_modifier": 0.8500000000000001,
+      "size_modifier": 1.0,
+      "shape_modifier": 0.7576657844552446,
+      "texture_modifier": 0.8,
+      "position_modifier": 0.968984375,
+      "quality_grade": "C"
+    }
+  },
+  "hold_2_2": {
+    "center": [
+      236,
+      256
+    ],
+    "class": "volume",
+    "confidence": 0.9982500672340393,
+    "bbox": [
+      156,
+      184,
+      272,
+      288
+    ],
+    "size_analysis": {
+      "area_pixels": 7284.5,
+      "area_normalized": 0.017784423828125,
+      "size_quality": 1.0
+    },
+    "shape_analysis": {
+      "solidity": 0.5695687868955002,
+      "compactness": 0.10299146770552173,
+      "aspect_ratio": 2.0114942528735633,
+      "solidity_quality": 0.8,
+      "compactness_quality": 0.6411965870822087,
+      "aspect_quality": 0.831800766283525,
+      "shape_quality": 0.7576657844552446
+    },
+    "texture_analysis": {
+      "texture_variance": 2917.5129304224106,
+      "texture_quality": 0.8
+    },
+    "quality_analysis": {
+      "quality_score": 0.6194222225080879,
+      "base_quality": 0.55,
+      "confidence_modifier": 0.9996500134468079,
+      "angle_modifier": 0.8500000000000001,
+      "size_modifier": 1.0,
+      "shape_modifier": 0.7576657844552446,
+      "texture_modifier": 0.8,
+      "position_modifier": 0.97,
+      "quality_grade": "C"
+    }
+  },
+  "hold_3": {
+    "center": [
+      9,
+      192
+    ],
+    "class": "volume",
+    "confidence": 0.9276989102363586,
+    "bbox": [
+      0,
+      168,
+      31,
+      224
+    ],
+    "size_analysis": {
+      "area_pixels": 651.0,
+      "area_normalized": 0.00158935546875,
+      "size_quality": 0.7255
+    },
+    "shape_analysis": {
+      "solidity": 0.8645418326693227,
+      "compactness": 0.5267004241400248,
+      "aspect_ratio": 1.7727272727272727,
+      "solidity_quality": 0.9,
+      "compactness_quality": 0.81068016965601,
+      "aspect_quality": 0.8636363636363636,
+      "shape_quality": 0.8581055110974579
+    },
+    "texture_analysis": {
+      "texture_variance": 1294.4642622605331,
+      "texture_quality": 0.8
+    },
+    "quality_analysis": {
+      "quality_score": 0.5682943204527536,
+      "base_quality": 0.55,
+      "confidence_modifier": 0.9855397820472718,
+      "angle_modifier": 0.8500000000000001,
+      "size_modifier": 0.7255,
+      "shape_modifier": 0.8581055110974579,
+      "texture_modifier": 0.8,
+      "position_modifier": 0.965,
+      "quality_grade": "D"
+    }
+  },
+  "hold_4": {
+    "center": [
+      88,
+      180
+    ],
+    "class": "volume",
+    "confidence": 0.9999274015426636,
+    "bbox": [
+      56,
+      144,
+      120,
+      216
+    ],
+    "size_analysis": {
+      "area_pixels": 1987.5,
+      "area_normalized": 0.004852294921875,
+      "size_quality": 0.9979166666666668
+    },
+    "shape_analysis": {
+      "solidity": 0.8282975619920817,
+      "compactness": 0.3407004204745817,
+      "aspect_ratio": 1.1702127659574468,
+      "solidity_quality": 1.0,
+      "compactness_quality": 0.7362801681898327,
+      "aspect_quality": 1.0,
+      "shape_quality": 0.9120933893966109
+    },
+    "texture_analysis": {
+      "texture_variance": 2275.8179155733064,
+      "texture_quality": 0.8
+    },
+    "quality_analysis": {
+      "quality_score": 0.6407193289619221,
+      "base_quality": 0.55,
+      "confidence_modifier": 0.9999854803085327,
+      "angle_modifier": 0.8500000000000001,
+      "size_modifier": 0.9979166666666668,
+      "shape_modifier": 0.9120933893966109,
+      "texture_modifier": 0.8,
+      "position_modifier": 0.9640625,
+      "quality_grade": "C"
+    }
+  }
+}

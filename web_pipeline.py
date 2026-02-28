@@ -23,11 +23,13 @@ app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
 
 # Global state
-VIDEO_FOLDER = Path("Vids")
+VIDEO_FOLDER = Path("my_videos")
 OUTPUT_FOLDER = Path("batch_output")
 CURRENT_VIDEO_INDEX = 0
+PROCESSED_VIDEO_COUNT = 0  # Counter for successfully processed videos only
 VIDEO_FILES = []
 CLIMBER_CONFIG = {}
+
 
 def find_videos():
     """Find all video files in the video folder."""
@@ -141,9 +143,9 @@ def detect_holds():
         bgr = np.array(c['bgr'], dtype=np.float32)
         selected_colors.append((lab, hsv, bgr))
     
-    # Create output directory
+    # Create TEMPORARY output directory (will be renamed on save)
     video_name = Path(video_path).stem
-    output_dir = OUTPUT_FOLDER / f"video_{CURRENT_VIDEO_INDEX+1:03d}_{video_name}"
+    output_dir = OUTPUT_FOLDER / f"temp_{video_name}_{CURRENT_VIDEO_INDEX}"
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Detect holds
@@ -167,25 +169,10 @@ def detect_holds():
     with open(holds_json, 'w') as f:
         json.dump(hold_positions, f, indent=2)
     
-    # Run splitter
-    try:
-        split_path = split_grouped_holds(
-            holds_json_path=str(holds_json),
-            mask_path=str(output_dir / "hold_mask_composite.jpg"),
-            debug_image_path=str(output_dir / "holds_debug.jpg"),
-            output_dir=str(output_dir),
-            video_path=video_path
-        )
-        
-        if split_path:
-            with open(split_path, 'r') as f:
-                hold_positions = json.load(f)
-            # Use split visualization
-            vis_path = output_dir / "holds_debug_split.jpg"
-        else:
-            vis_path = output_dir / "holds_debug.jpg"
-    except:
-        vis_path = output_dir / "holds_debug.jpg"
+    # SKIP splitting - use original detection
+    # Splitting often creates false divisions, original detection is usually better
+    print("[web] Using original hold detection (splitting disabled)")
+    vis_path = output_dir / "holds_debug.jpg"
     
     # Encode visualization
     vis_img = cv2.imread(str(vis_path))
@@ -194,6 +181,7 @@ def detect_holds():
     
     # Save to session
     session['current_output_dir'] = str(output_dir)
+    session['current_video_path'] = video_path
     session['hold_positions'] = hold_positions
     
     # Create a clickable visualization for finish hold selection
@@ -219,6 +207,71 @@ def detect_holds():
     })
 
 
+@app.route('/api/split_holds', methods=['POST'])
+def api_split_holds():
+    """Optional endpoint to split grouped holds."""
+    try:
+        output_dir = session.get('current_output_dir')
+        if not output_dir:
+            return jsonify({'success': False, 'error': 'No output directory'})
+        
+        output_dir = Path(output_dir)
+        
+        # Load original holds
+        holds_json = output_dir / "hold_positions_auto.json"
+        with open(holds_json, 'r') as f:
+            original_holds = json.load(f)
+        original_count = len(original_holds)
+        
+        # Try to import the splitter
+        try:
+            from split_grouped_holds_improved import split_grouped_holds
+        except ImportError:
+            try:
+                from split_grouped_holds import split_grouped_holds
+            except ImportError:
+                return jsonify({'success': False, 'error': 'Hold splitter not available'})
+        
+        # Run splitter with correct parameters
+        split_holds = split_grouped_holds(
+            holds_json_path=str(holds_json),
+            mask_path=str(output_dir / "hold_mask_composite.jpg"),
+            output_dir=str(output_dir),
+            min_separation=40,
+            debug=True
+        )
+        
+        if split_holds:
+            # Load split visualization
+            split_viz_path = output_dir / "holds_debug_split_improved.jpg"
+            if not split_viz_path.exists():
+                split_viz_path = output_dir / "holds_debug_split.jpg"
+            
+            if split_viz_path.exists():
+                with open(split_viz_path, 'rb') as f:
+                    split_viz_base64 = base64.b64encode(f.read()).decode('utf-8')
+            else:
+                # Use original if split viz doesn't exist
+                with open(output_dir / "holds_debug.jpg", 'rb') as f:
+                    split_viz_base64 = base64.b64encode(f.read()).decode('utf-8')
+            
+            return jsonify({
+                'success': True,
+                'original_count': original_count,
+                'split_count': len(split_holds),
+                'holds': split_holds,
+                'split_viz': split_viz_base64
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Splitting returned no results'})
+            
+    except Exception as e:
+        print(f"[web] Split holds error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)})
+
+
 @app.route('/api/detect_moves', methods=['POST'])
 def detect_moves():
     """Detect and classify moves, stopping only when hand reaches finish hold."""
@@ -238,28 +291,52 @@ def detect_moves():
     
     # Classify holds first (if classifier available)
     try:
-        classifier_path = Path("move_classifier/hold_classifier.h5")
+        classifier_path = Path("models/hold_classifier_resnet18.pt")
         if classifier_path.exists():
-            import sys
-            old_argv = sys.argv
-            sys.argv = [
-                'enrich',
-                '--video', video_path,
-                '--holds', str(holds_json),
-                '--output', str(output_dir)
-            ]
+            from enrich_holds_with_classifier_multiframe import main as enrich_holds
+            enrich_holds(video_path, str(output_dir))
             
-            try:
-                from enrich_holds_with_classifier_multiframe import main as enrich_holds
-                enrich_holds()
+            # Use enriched holds if created
+            enriched_holds_path = output_dir / "hold_positions_enriched.json"
+            if enriched_holds_path.exists():
+                print("[web] Using enriched holds with classifications")
                 
-                # Use enriched holds if created
-                enriched_holds_path = output_dir / "hold_positions_enriched.json"
-                if enriched_holds_path.exists():
-                    holds_json = enriched_holds_path
-                    print("[web] Using enriched holds with classifications")
-            finally:
-                sys.argv = old_argv
+                # Analyze hold quality
+                try:
+                    from analyze_hold_quality import analyze_all_holds
+                    
+                    ref_image = output_dir / "holds_debug_split.jpg"
+                    if not ref_image.exists():
+                        ref_image = output_dir / "holds_debug.jpg"
+                    
+                    # Get wall angle from session if available
+                    wall_angle = session.get('wall_angle', 0.0)
+                    
+                    quality_results = analyze_all_holds(
+                        enriched_holds_path=str(enriched_holds_path),
+                        mask_path=str(output_dir / "hold_mask_composite.jpg"),
+                        image_path=str(ref_image),
+                        wall_angle=wall_angle,
+                        output_path=str(output_dir / "hold_positions_with_quality.json")
+                    )
+                    
+                    print("[web] Hold quality analysis complete")
+                    
+                    # Extract just the centers for move detection
+                    simple_holds = {hold_id: data['center'] for hold_id, data in quality_results.items()}
+                except Exception as e:
+                    print(f"[web] Hold quality analysis failed: {e}")
+                    # Fall back to enriched holds without quality
+                    with open(enriched_holds_path, 'r') as f:
+                        enriched = json.load(f)
+                    simple_holds = {hold_id: data['center'] for hold_id, data in enriched.items()}
+                
+                # Save simple version for move detector
+                simple_holds_path = output_dir / "hold_positions_for_moves.json"
+                with open(simple_holds_path, 'w') as f:
+                    json.dump(simple_holds, f, indent=2)
+                
+                holds_json = simple_holds_path
     except Exception as e:
         print(f"[web] Hold classification failed: {e}")
     
@@ -528,6 +605,29 @@ def save_climb():
     with open(climb_data_path, 'r') as f:
         climb_data = json.load(f)
     
+    # Rename temp directory to final numbered directory
+    global PROCESSED_VIDEO_COUNT
+    try:
+        temp_output_dir = Path(session.get('current_output_dir'))
+        video_path = Path(session.get('current_video_path'))
+        video_name = video_path.stem
+        
+        PROCESSED_VIDEO_COUNT += 1
+        final_output_dir = OUTPUT_FOLDER / f"video_{PROCESSED_VIDEO_COUNT:03d}_{video_name}"
+        
+        # Rename temp directory to final directory
+        if temp_output_dir.exists():
+            import shutil
+            if final_output_dir.exists():
+                shutil.rmtree(final_output_dir)  # Remove if exists
+            shutil.move(str(temp_output_dir), str(final_output_dir))
+            print(f"[web] Renamed output: {temp_output_dir.name} → {final_output_dir.name}")
+            
+            # Update climb data with correct path
+            climb_data['output_dir'] = str(final_output_dir)
+    except Exception as e:
+        print(f"[web] Warning: Could not rename output directory: {e}")
+    
     # Convert to training format - check function signature
     try:
         training_entry = convert_to_training_format(
@@ -572,9 +672,64 @@ def save_climb():
 
 @app.route('/api/skip_video', methods=['POST'])
 def skip_video():
-    """Skip current video."""
+    """Skip current video and move to skipped folder."""
     global CURRENT_VIDEO_INDEX
-    CURRENT_VIDEO_INDEX += 1
+    
+    # Clean up temp directory if it exists
+    try:
+        temp_output_dir = session.get('current_output_dir')
+        if temp_output_dir:
+            temp_path = Path(temp_output_dir)
+            if temp_path.exists() and 'temp_' in temp_path.name:
+                import shutil
+                shutil.rmtree(temp_path)
+                print(f"[web] Cleaned up temp directory: {temp_path.name}")
+    except Exception as e:
+        print(f"[web] Warning: Could not clean up temp directory: {e}")
+    
+    # Archive to skipped folder immediately
+    try:
+        import shutil
+        import time
+        
+        if CURRENT_VIDEO_INDEX < len(VIDEO_FILES):
+            video_path = VIDEO_FILES[CURRENT_VIDEO_INDEX]  # Already a full Path object
+            
+            # Small delay to ensure video is fully closed
+            time.sleep(0.5)
+            
+            # Create skipped folder
+            skipped_folder = VIDEO_FOLDER / "skipped"
+            skipped_folder.mkdir(exist_ok=True)
+            
+            destination = skipped_folder / video_path.name
+            
+            # Handle duplicate names
+            if destination.exists():
+                base = destination.stem
+                ext = destination.suffix
+                counter = 1
+                while destination.exists():
+                    destination = skipped_folder / f"{base}_{counter}{ext}"
+                    counter += 1
+            
+            # Move video if it exists
+            if video_path.exists():
+                shutil.move(str(video_path), str(destination))
+                print(f"\n⏭️  Video skipped and archived to: {destination}")
+                
+                # Refresh video list after archiving
+                find_videos()
+                print(f"📁 Remaining videos: {len(VIDEO_FILES)}")
+            else:
+                print(f"\n⚠ Video not found for archiving: {video_path}")
+    
+    except Exception as e:
+        print(f"\n⚠ Failed to archive skipped video: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    # Don't increment index since we removed the video from the list
     return jsonify({'success': True})
 
 
@@ -582,7 +737,51 @@ def skip_video():
 def next_video():
     """Move to next video after completing current one."""
     global CURRENT_VIDEO_INDEX
-    CURRENT_VIDEO_INDEX += 1
+    
+    # Archive the current video before moving to next
+    try:
+        import shutil
+        import time
+        
+        if CURRENT_VIDEO_INDEX < len(VIDEO_FILES):
+            video_path = VIDEO_FILES[CURRENT_VIDEO_INDEX]  # Already a full Path object
+            
+            # Small delay to ensure video is fully closed
+            time.sleep(0.5)
+            
+            # Create processed folder
+            processed_folder = VIDEO_FOLDER / "processed"
+            processed_folder.mkdir(exist_ok=True)
+            
+            destination = processed_folder / video_path.name
+            
+            # Handle duplicate names
+            if destination.exists():
+                base = destination.stem
+                ext = destination.suffix
+                counter = 1
+                while destination.exists():
+                    destination = processed_folder / f"{base}_{counter}{ext}"
+                    counter += 1
+            
+            # Move video if it exists
+            if video_path.exists():
+                shutil.move(str(video_path), str(destination))
+                print(f"\n📦 Video archived to: {destination}")
+                
+                # Refresh video list after archiving
+                find_videos()
+                print(f"📁 Remaining videos: {len(VIDEO_FILES)}")
+            else:
+                print(f"\n⚠ Video not found for archiving: {video_path}")
+    
+    except Exception as e:
+        print(f"\n⚠ Failed to archive video: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    # Don't increment index since we removed the video from the list
+    # The next video is now at the same index
     return jsonify({'success': True})
 
 

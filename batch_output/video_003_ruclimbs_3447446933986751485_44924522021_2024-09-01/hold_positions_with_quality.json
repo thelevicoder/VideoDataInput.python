@@ -1,0 +1,174 @@
+{
+  "hold_0": {
+    "center": [
+      139,
+      322
+    ],
+    "class": "pocket",
+    "confidence": 0.3019675016403198,
+    "bbox": [
+      104,
+      280,
+      176,
+      360
+    ],
+    "size_analysis": {
+      "area_pixels": 2728.5,
+      "area_normalized": 0.006661376953125,
+      "size_quality": 1.0
+    },
+    "shape_analysis": {
+      "solidity": 0.8494707347447074,
+      "compactness": 0.2155490240924675,
+      "aspect_ratio": 1.1454545454545455,
+      "solidity_quality": 1.0,
+      "compactness_quality": 0.686219609636987,
+      "aspect_quality": 1.0,
+      "shape_quality": 0.8954065365456624
+    },
+    "texture_analysis": {
+      "texture_variance": 4900.419453331794,
+      "texture_quality": 0.8
+    },
+    "quality_analysis": {
+      "quality_score": 0.7027651464661931,
+      "base_quality": 0.75,
+      "confidence_modifier": 0.860393500328064,
+      "angle_modifier": 0.975,
+      "size_modifier": 1.0,
+      "shape_modifier": 0.8954065365456624,
+      "texture_modifier": 0.8,
+      "position_modifier": 0.97515625,
+      "quality_grade": "B"
+    }
+  },
+  "hold_1": {
+    "center": [
+      264,
+      270
+    ],
+    "class": "pinch",
+    "confidence": 0.5127955079078674,
+    "bbox": [
+      224,
+      232,
+      312,
+      312
+    ],
+    "size_analysis": {
+      "area_pixels": 3081.0,
+      "area_normalized": 0.00752197265625,
+      "size_quality": 1.0
+    },
+    "shape_analysis": {
+      "solidity": 0.8137876386687797,
+      "compactness": 0.2294975254893802,
+      "aspect_ratio": 1.149682878556844,
+      "solidity_quality": 1.0,
+      "compactness_quality": 0.6917990101957521,
+      "aspect_quality": 1.0,
+      "shape_quality": 0.8972663367319175
+    },
+    "texture_analysis": {
+      "texture_variance": 3489.8728856468792,
+      "texture_quality": 0.8
+    },
+    "quality_analysis": {
+      "quality_score": 0.6656615871670291,
+      "base_quality": 0.6,
+      "confidence_modifier": 0.9025591015815735,
+      "angle_modifier": 0.95,
+      "size_modifier": 1.0,
+      "shape_modifier": 0.8972663367319175,
+      "texture_modifier": 0.8,
+      "position_modifier": 0.97109375,
+      "quality_grade": "C"
+    }
+  },
+  "hold_2": {
+    "center": [
+      226,
+      182
+    ],
+    "class": "volume",
+    "confidence": 0.6446676254272461,
+    "bbox": [
+      200,
+      152,
+      256,
+      208
+    ],
+    "size_analysis": {
+      "area_pixels": 1078.0,
+      "area_normalized": 0.0026318359375,
+      "size_quality": 0.8463333333333334
+    },
+    "shape_analysis": {
+      "solidity": 0.7738693467336684,
+      "compactness": 0.21985492642886212,
+      "aspect_ratio": 1.0,
+      "solidity_quality": 1.0,
+      "compactness_quality": 0.6879419705715448,
+      "aspect_quality": 1.0,
+      "shape_quality": 0.8959806568571816
+    },
+    "texture_analysis": {
+      "texture_variance": 6033.514493601447,
+      "texture_quality": 0.8
+    },
+    "quality_analysis": {
+      "quality_score": 0.5639856703079474,
+      "base_quality": 0.55,
+      "confidence_modifier": 0.9289335250854492,
+      "angle_modifier": 0.8500000000000001,
+      "size_modifier": 0.8463333333333334,
+      "shape_modifier": 0.8959806568571816,
+      "texture_modifier": 0.8,
+      "position_modifier": 0.96421875,
+      "quality_grade": "D"
+    }
+  },
+  "hold_3": {
+    "center": [
+      145,
+      59
+    ],
+    "class": "jug",
+    "confidence": 0.9657555818557739,
+    "bbox": [
+      88,
+      24,
+      200,
+      98
+    ],
+    "size_analysis": {
+      "area_pixels": 4638.0,
+      "area_normalized": 0.0113232421875,
+      "size_quality": 1.0
+    },
+    "shape_analysis": {
+      "solidity": 0.912992125984252,
+      "compactness": 0.2768592915316359,
+      "aspect_ratio": 1.6666666666666667,
+      "solidity_quality": 0.9,
+      "compactness_quality": 0.7107437166126543,
+      "aspect_quality": 0.8777777777777778,
+      "shape_quality": 0.8295071647968107
+    },
+    "texture_analysis": {
+      "texture_variance": 2217.626064231897,
+      "texture_quality": 0.8
+    },
+    "quality_analysis": {
+      "quality_score": 0.8119840890133797,
+      "base_quality": 0.95,
+      "confidence_modifier": 0.9931511163711548,
+      "angle_modifier": 0.925,
+      "size_modifier": 1.0,
+      "shape_modifier": 0.8295071647968107,
+      "texture_modifier": 0.8,
+      "position_modifier": 0.954609375,
+      "quality_grade": "A"
+    }
+  }
+}

@@ -325,6 +325,11 @@
             border-radius: 4px;
         }
         
+        .info-box.warning {
+            border-left-color: #ff9800;
+            background: #2d2416;
+        }
+        
         .success-message {
             background: #1b5e20;
             padding: 15px;
@@ -418,6 +423,38 @@
             </div>
         </div>
         
+        <!-- Step 2.25: Optional Hold Splitting -->
+        <div class="step" id="step2_25">
+            <h2>Step 2.25: Split Grouped Holds (Optional)</h2>
+            <div class="info-box warning">
+                <p><strong>⚠️ Warning:</strong> Hold splitting is experimental and can sometimes create false divisions.</p>
+                <p><strong>Recommendation:</strong> Only split if you see holds that are clearly grouped together.</p>
+                <p>If unsure, skip this step - the original detection is usually better.</p>
+            </div>
+            
+            <div class="holds-viz">
+                <h3>Current Holds</h3>
+                <img id="currentHoldsImg" src="" alt="Current holds">
+                <p id="currentHoldsCount" style="margin-top: 10px; color: #4CAF50;"></p>
+            </div>
+            
+            <div class="button-group" style="margin-top: 30px;">
+                <button onclick="splitHolds()" class="secondary" id="splitBtn">✂️ Try Splitting Holds</button>
+                <button onclick="skipSplitting()" id="skipSplitBtn">⏩ Skip - Use Original Detection</button>
+            </div>
+            
+            <div id="splitPreview" style="display: none; margin-top: 30px;">
+                <h3>Split Results</h3>
+                <img id="splitHoldsImg" src="" alt="Split holds">
+                <p id="splitHoldsCount" style="margin-top: 10px; color: #4CAF50;"></p>
+                
+                <div class="button-group" style="margin-top: 20px;">
+                    <button onclick="useSplitHolds()">✅ Use Split Holds →</button>
+                    <button onclick="useOriginalHolds()" class="secondary">↩️ Use Original Holds</button>
+                </div>
+            </div>
+        </div>
+        
         <!-- Step 2.5: Select Finish Hold -->
         <div class="step" id="step2_5">
             <h2>Step 2.5: Select Finish Hold (Optional)</h2>
@@ -443,15 +480,20 @@
         <div class="step" id="step3">
             <h2>Step 3: Review Detected Moves</h2>
             <div class="info-box">
-                <p>Review the detected moves. If they look incorrect, click "Rerun Move Detection" to try again.</p>
+                <p id="moveDetectionInfo">Move detection completed. Review the detected moves below.</p>
             </div>
             
             <div id="movesContainer">
                 <div class="moves-grid" id="movesGrid"></div>
             </div>
             
+            <div class="info-box warning" style="margin-top: 30px;">
+                <p><strong>Not happy with the results?</strong> You can re-run move detection with different settings:</p>
+            </div>
+            
             <div class="button-group">
-                <button onclick="rerunMoveDetection()" class="secondary">🔄 Rerun Move Detection</button>
+                <button onclick="rerunWithFinishHold()" class="secondary">🎯 Change Finish Hold</button>
+                <button onclick="rerunWholeVideo()" class="secondary">🎬 Process Entire Video</button>
                 <button onclick="confirmMoves()">✅ Moves Look Good →</button>
             </div>
         </div>
@@ -576,6 +618,12 @@
             // Reset state
             selectedColors = [];
             updateColorSwatches();
+            
+            // Reset split preview from previous video
+            document.getElementById('splitPreview').style.display = 'none';
+            document.getElementById('splitBtn').disabled = false;
+            document.getElementById('skipSplitBtn').disabled = false;
+            window.splitHoldsData = null;
             
             // Show step 2
             showStep(2);
@@ -716,11 +764,93 @@
                 await previewHolds();
             }
             
-            // Get finish select image from server response
+            // Show step 2.25 (optional hold splitting)
             showLoading();
-            updateProgress(50, 'Setting up finish hold selection...');
+            updateProgress(45, 'Preparing hold splitting...');
             
+            // Reset split preview from any previous attempt
+            document.getElementById('splitPreview').style.display = 'none';
+            document.getElementById('splitBtn').disabled = false;
+            document.getElementById('skipSplitBtn').disabled = false;
+            window.splitHoldsData = null;  // Renamed to avoid conflict with function
+            
+            // Display current holds in step 2.25
+            const currentImg = document.getElementById('currentHoldsImg');
+            currentImg.src = finishSelectImage; // Reuse the holds visualization
+            
+            const count = Object.keys(currentHolds).length;
+            document.getElementById('currentHoldsCount').textContent = 
+                `Detected ${count} holds`;
+            
+            showStep('2_25');
+            updateProgress(50, 'Optional: Split holds if needed');
+            hideLoading();
+        }
+        
+        // Step 2.25: Hold splitting functions
+        async function skipSplitting() {
+            // Skip to finish hold selection
+            proceedToFinishSelection();
+        }
+        
+        async function splitHolds() {
+            showLoading();
+            updateProgress(52, 'Splitting holds...');
+            
+            const splitBtn = document.getElementById('splitBtn');
+            const skipBtn = document.getElementById('skipSplitBtn');
+            splitBtn.disabled = true;
+            skipBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/split_holds', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Show split results
+                    document.getElementById('splitHoldsImg').src = 
+                        'data:image/jpeg;base64,' + data.split_viz;
+                    document.getElementById('splitHoldsCount').textContent = 
+                        `Split into ${data.split_count} holds (was ${data.original_count})`;
+                    document.getElementById('splitPreview').style.display = 'block';
+                    
+                    // Store split holds
+                    window.splitHoldsData = data.holds;
+                } else {
+                    alert('Hold splitting failed. Using original holds.');
+                    skipSplitting();
+                }
+            } catch (error) {
+                console.error('Split error:', error);
+                alert('Error splitting holds. Using original holds.');
+                skipSplitting();
+            } finally {
+                hideLoading();
+                splitBtn.disabled = false;
+                skipBtn.disabled = false;
+            }
+        }
+        
+        function useSplitHolds() {
+            // Use the split holds
+            currentHolds = window.splitHoldsData;
+            proceedToFinishSelection();
+        }
+        
+        function useOriginalHolds() {
+            // Keep original holds
+            proceedToFinishSelection();
+        }
+        
+        function proceedToFinishSelection() {
             // Show step 2.5 (finish hold selection)
+            showLoading();
+            updateProgress(55, 'Setting up finish hold selection...');
+            
             const canvas = document.getElementById('finishCanvas');
             const ctx = canvas.getContext('2d');
             const img = new Image();
@@ -735,7 +865,7 @@
             img.src = finishSelectImage;
             
             showStep('2_5');
-            updateProgress(55, 'Select finish hold');
+            updateProgress(60, 'Select finish hold');
             hideLoading();
         }
         
@@ -816,6 +946,17 @@
             
             if (data.success) {
                 displayMoves(data.moves, data.snapshots);
+                
+                // Update info message based on whether finish hold was used
+                const infoElement = document.getElementById('moveDetectionInfo');
+                if (selectedFinishHold) {
+                    infoElement.innerHTML = 
+                        `<strong>Stopped at finish hold (${selectedFinishHold})</strong> - Detected ${data.moves.length} moves`;
+                } else {
+                    infoElement.innerHTML = 
+                        `<strong>Processed entire video</strong> - Detected ${data.moves.length} moves`;
+                }
+                
                 showStep(3);
                 updateProgress(75, 'Review moves');
             }
@@ -832,7 +973,7 @@
                 card.className = 'move-card';
                 
                 let html = '';
-                if (snapshots[idx]) {
+                if (snapshots && snapshots[idx]) {
                     html += `<img src="${snapshots[idx]}" alt="Move ${idx+1}">`;
                 }
                 
@@ -851,6 +992,80 @@
         
         async function rerunMoveDetection() {
             await confirmFinishHold();
+        }
+        
+        // Rerun move detection with different finish hold
+        async function rerunWithFinishHold() {
+            showLoading();
+            updateProgress(55, 'Select a different finish hold...');
+            
+            // Go back to Step 2.5 (finish hold selection)
+            const canvas = document.getElementById('finishCanvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = function() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                canvas.onclick = handleFinishHoldClick;
+            };
+            
+            img.src = finishSelectImage;
+            
+            // Reset finish hold selection
+            selectedFinishHold = null;
+            document.getElementById('selectedFinishHold').textContent = '';
+            
+            showStep('2_5');
+            updateProgress(60, 'Select finish hold (or skip)');
+            hideLoading();
+        }
+        
+        // Rerun move detection for entire video (no finish hold)
+        async function rerunWholeVideo() {
+            if (!confirm('Process the entire video without stopping at a finish hold?')) {
+                return;
+            }
+            
+            showLoading();
+            updateProgress(65, 'Detecting moves (entire video)...');
+            
+            try {
+                const response = await fetch('/api/detect_moves', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        video_path: currentVideoPath,
+                        finish_hold: null  // No finish hold = process entire video
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update session with new climb data
+                    session_climb_data_path = data.climb_data_path;
+                    
+                    // Display moves with snapshots
+                    displayMoves(data.moves, data.snapshots);
+                    
+                    // Update info message
+                    document.getElementById('moveDetectionInfo').innerHTML = 
+                        `<strong>Processed entire video</strong> - Detected ${data.moves.length} moves`;
+                    
+                    // Stay on Step 3
+                    showStep(3);
+                    updateProgress(75, 'Review moves');
+                } else {
+                    alert('Move detection failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Move detection error:', error);
+                alert('Error detecting moves. Please try again.');
+            } finally {
+                hideLoading();
+            }
         }
         
         function confirmMoves() {

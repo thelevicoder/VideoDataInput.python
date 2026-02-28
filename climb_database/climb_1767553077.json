@@ -1,0 +1,636 @@
+{
+  "climb_data": {
+    "video_path": "my_videos\\ruclimbs_3431509674791884588_44924522021_2024-08-10.mp4",
+    "holds_json": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\hold_positions_for_moves.json",
+    "finish_hold": "hold_4",
+    "fps": 30.0,
+    "moves": [
+      {
+        "move_index": 0,
+        "frame_index": 13,
+        "time_seconds": 0.43333333333333335,
+        "limb": "rightfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "toe_hook",
+        "confidence": 0.3683794140815735,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_01.jpg",
+        "probs": [
+          0.052201349288225174,
+          0.36157408356666565,
+          0.3683794140815735,
+          0.16660091280937195,
+          0.04798884317278862,
+          0.0031491476111114025,
+          0.00010621903493301943
+        ]
+      },
+      {
+        "move_index": 1,
+        "frame_index": 117,
+        "time_seconds": 3.9,
+        "limb": "leftfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "smear",
+        "confidence": 0.41199249029159546,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_02.jpg",
+        "probs": [
+          0.28976869583129883,
+          0.18532413244247437,
+          0.0408964641392231,
+          0.07092086970806122,
+          0.41199249029159546,
+          0.0010783863253891468,
+          1.898257505672518e-05
+        ]
+      },
+      {
+        "move_index": 2,
+        "frame_index": 117,
+        "time_seconds": 3.9,
+        "limb": "rightfoot",
+        "from_hold": "hold_1",
+        "to_hold": "hold_0",
+        "hold_distance_px": 97.082439194738,
+        "type": "smear",
+        "confidence": 0.3585810661315918,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_03.jpg",
+        "probs": [
+          0.3327038288116455,
+          0.159068301320076,
+          0.055737126618623734,
+          0.09190290421247482,
+          0.3585810661315918,
+          0.0019758224952965975,
+          3.097656735917553e-05
+        ]
+      },
+      {
+        "move_index": 3,
+        "frame_index": 125,
+        "time_seconds": 4.166666666666667,
+        "limb": "lefthand",
+        "from_hold": "hold_2_0",
+        "to_hold": "hold_2_2",
+        "hold_distance_px": 72.71863585079137,
+        "type": "smear",
+        "confidence": 0.3631710112094879,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_04.jpg",
+        "probs": [
+          0.328219473361969,
+          0.14747853577136993,
+          0.05903581902384758,
+          0.10012644529342651,
+          0.3631710112094879,
+          0.0019382147584110498,
+          3.058696529478766e-05
+        ]
+      },
+      {
+        "move_index": 4,
+        "frame_index": 125,
+        "time_seconds": 4.166666666666667,
+        "limb": "righthand",
+        "from_hold": "hold_2_2",
+        "to_hold": "hold_2_0",
+        "hold_distance_px": 72.71863585079137,
+        "type": "smear",
+        "confidence": 0.39991259574890137,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_05.jpg",
+        "probs": [
+          0.3096739947795868,
+          0.15849660336971283,
+          0.04487387835979462,
+          0.08515319973230362,
+          0.39991259574890137,
+          0.0018365063006058335,
+          5.323191362549551e-05
+        ]
+      },
+      {
+        "move_index": 5,
+        "frame_index": 152,
+        "time_seconds": 5.066666666666666,
+        "limb": "lefthand",
+        "from_hold": "hold_2_0",
+        "to_hold": "hold_2_2",
+        "hold_distance_px": 72.71863585079137,
+        "type": "smear",
+        "confidence": 0.36214426159858704,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_06.jpg",
+        "probs": [
+          0.3327864408493042,
+          0.146564319729805,
+          0.053710538893938065,
+          0.10215964913368225,
+          0.36214426159858704,
+          0.002579420106485486,
+          5.5392662034137174e-05
+        ]
+      },
+      {
+        "move_index": 6,
+        "frame_index": 152,
+        "time_seconds": 5.066666666666666,
+        "limb": "rightfoot",
+        "from_hold": "hold_1",
+        "to_hold": "hold_0",
+        "hold_distance_px": 97.082439194738,
+        "type": "smear",
+        "confidence": 0.4565636217594147,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_07.jpg",
+        "probs": [
+          0.28869524598121643,
+          0.14590762555599213,
+          0.03350399434566498,
+          0.07359950989484787,
+          0.4565636217594147,
+          0.0016963282832875848,
+          3.3640109904808924e-05
+        ]
+      },
+      {
+        "move_index": 7,
+        "frame_index": 153,
+        "time_seconds": 5.1,
+        "limb": "leftfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "smear",
+        "confidence": 0.49714383482933044,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_08.jpg",
+        "probs": [
+          0.19694408774375916,
+          0.2099004089832306,
+          0.03524567931890488,
+          0.05938848853111267,
+          0.49714383482933044,
+          0.0013396149734035134,
+          3.788275716942735e-05
+        ]
+      },
+      {
+        "move_index": 8,
+        "frame_index": 168,
+        "time_seconds": 5.6,
+        "limb": "rightfoot",
+        "from_hold": "hold_1",
+        "to_hold": "hold_0",
+        "hold_distance_px": 97.082439194738,
+        "type": "smear",
+        "confidence": 0.3807378113269806,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_09.jpg",
+        "probs": [
+          0.19176967442035675,
+          0.22058932483196259,
+          0.0875672847032547,
+          0.11700450628995895,
+          0.3807378113269806,
+          0.0022568576969206333,
+          7.460002234438434e-05
+        ]
+      },
+      {
+        "move_index": 9,
+        "frame_index": 173,
+        "time_seconds": 5.766666666666667,
+        "limb": "leftfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "smear",
+        "confidence": 0.3592236042022705,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_10.jpg",
+        "probs": [
+          0.27602407336235046,
+          0.18853814899921417,
+          0.06408247351646423,
+          0.10865149646997452,
+          0.3592236042022705,
+          0.0034000759478658438,
+          8.025706483749673e-05
+        ]
+      },
+      {
+        "move_index": 10,
+        "frame_index": 255,
+        "time_seconds": 8.5,
+        "limb": "leftfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "reach",
+        "confidence": 0.27151215076446533,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_11.jpg",
+        "probs": [
+          0.27151215076446533,
+          0.2402610331773758,
+          0.0845864787697792,
+          0.1387946456670761,
+          0.2581217288970947,
+          0.006563919596374035,
+          0.00016007402155082673
+        ]
+      },
+      {
+        "move_index": 11,
+        "frame_index": 308,
+        "time_seconds": 10.266666666666667,
+        "limb": "leftfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "reach",
+        "confidence": 0.3044685125350952,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_12.jpg",
+        "probs": [
+          0.3044685125350952,
+          0.23891504108905792,
+          0.07489022612571716,
+          0.12728920578956604,
+          0.24793288111686707,
+          0.006339177023619413,
+          0.0001649811747483909
+        ]
+      },
+      {
+        "move_index": 12,
+        "frame_index": 381,
+        "time_seconds": 12.7,
+        "limb": "leftfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "reach",
+        "confidence": 0.361035019159317,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_13.jpg",
+        "probs": [
+          0.361035019159317,
+          0.1605033129453659,
+          0.041660912334918976,
+          0.09798990190029144,
+          0.33452317118644714,
+          0.004196481313556433,
+          9.125891665462404e-05
+        ]
+      },
+      {
+        "move_index": 13,
+        "frame_index": 408,
+        "time_seconds": 13.6,
+        "limb": "lefthand",
+        "from_hold": "hold_2_0",
+        "to_hold": "hold_2_2",
+        "hold_distance_px": 72.71863585079137,
+        "type": "smear",
+        "confidence": 0.38645362854003906,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_14.jpg",
+        "probs": [
+          0.36045733094215393,
+          0.13050469756126404,
+          0.033136263489723206,
+          0.08583337813615799,
+          0.38645362854003906,
+          0.0035438190679997206,
+          7.086500409059227e-05
+        ]
+      },
+      {
+        "move_index": 14,
+        "frame_index": 412,
+        "time_seconds": 13.733333333333333,
+        "limb": "leftfoot",
+        "from_hold": "hold_1",
+        "to_hold": "hold_0",
+        "hold_distance_px": 97.082439194738,
+        "type": "reach",
+        "confidence": 0.4032241106033325,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_15.jpg",
+        "probs": [
+          0.4032241106033325,
+          0.13717463612556458,
+          0.03488440811634064,
+          0.09049158543348312,
+          0.3300049304962158,
+          0.0041227093897759914,
+          9.764339483808726e-05
+        ]
+      },
+      {
+        "move_index": 15,
+        "frame_index": 421,
+        "time_seconds": 14.033333333333333,
+        "limb": "righthand",
+        "from_hold": "hold_2_2",
+        "to_hold": "hold_2_0",
+        "hold_distance_px": 72.71863585079137,
+        "type": "reach",
+        "confidence": 0.4280248284339905,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_16.jpg",
+        "probs": [
+          0.4280248284339905,
+          0.18024426698684692,
+          0.04554559290409088,
+          0.09041907638311386,
+          0.24994131922721863,
+          0.005626644007861614,
+          0.0001981901441467926
+        ]
+      },
+      {
+        "move_index": 16,
+        "frame_index": 456,
+        "time_seconds": 15.2,
+        "limb": "leftfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "reach",
+        "confidence": 0.3384334444999695,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_17.jpg",
+        "probs": [
+          0.3384334444999695,
+          0.24555623531341553,
+          0.039961766451597214,
+          0.07137618958950043,
+          0.30060014128685,
+          0.003883560886606574,
+          0.0001886937825474888
+        ]
+      },
+      {
+        "move_index": 17,
+        "frame_index": 456,
+        "time_seconds": 15.2,
+        "limb": "rightfoot",
+        "from_hold": "hold_1",
+        "to_hold": "hold_0",
+        "hold_distance_px": 97.082439194738,
+        "type": "reach",
+        "confidence": 0.4237866699695587,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_18.jpg",
+        "probs": [
+          0.4237866699695587,
+          0.1980947107076645,
+          0.04549607262015343,
+          0.07967057079076767,
+          0.2472527027130127,
+          0.005494909826666117,
+          0.00020442427194211632
+        ]
+      },
+      {
+        "move_index": 18,
+        "frame_index": 474,
+        "time_seconds": 15.8,
+        "limb": "rightfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "reach",
+        "confidence": 0.4163506031036377,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_19.jpg",
+        "probs": [
+          0.4163506031036377,
+          0.2251889705657959,
+          0.04488900303840637,
+          0.06515919417142868,
+          0.24374833703041077,
+          0.004500438924878836,
+          0.00016339980356860906
+        ]
+      },
+      {
+        "move_index": 19,
+        "frame_index": 480,
+        "time_seconds": 16.0,
+        "limb": "leftfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "reach",
+        "confidence": 0.4367469847202301,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_20.jpg",
+        "probs": [
+          0.4367469847202301,
+          0.2272406369447708,
+          0.04634860157966614,
+          0.06325910240411758,
+          0.2214871644973755,
+          0.004767737351357937,
+          0.00014974875375628471
+        ]
+      },
+      {
+        "move_index": 20,
+        "frame_index": 505,
+        "time_seconds": 16.833333333333332,
+        "limb": "leftfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "smear",
+        "confidence": 0.4032555818557739,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_21.jpg",
+        "probs": [
+          0.29928791522979736,
+          0.20289403200149536,
+          0.03080265037715435,
+          0.06003718450665474,
+          0.4032555818557739,
+          0.0036257277242839336,
+          9.696504275780171e-05
+        ]
+      },
+      {
+        "move_index": 21,
+        "frame_index": 505,
+        "time_seconds": 16.833333333333332,
+        "limb": "rightfoot",
+        "from_hold": "hold_1",
+        "to_hold": "hold_0",
+        "hold_distance_px": 97.082439194738,
+        "type": "reach",
+        "confidence": 0.39548566937446594,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_22.jpg",
+        "probs": [
+          0.39548566937446594,
+          0.2729502320289612,
+          0.04680652916431427,
+          0.05777522176504135,
+          0.22163523733615875,
+          0.005175427068024874,
+          0.00017160795687232167
+        ]
+      },
+      {
+        "move_index": 22,
+        "frame_index": 528,
+        "time_seconds": 17.6,
+        "limb": "leftfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "reach",
+        "confidence": 0.312472403049469,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_23.jpg",
+        "probs": [
+          0.312472403049469,
+          0.30829304456710815,
+          0.03997890278697014,
+          0.06924431771039963,
+          0.2626814842224121,
+          0.007102733012288809,
+          0.0002271165867568925
+        ]
+      },
+      {
+        "move_index": 23,
+        "frame_index": 528,
+        "time_seconds": 17.6,
+        "limb": "rightfoot",
+        "from_hold": "hold_1",
+        "to_hold": "hold_0",
+        "hold_distance_px": 97.082439194738,
+        "type": "heel_hook",
+        "confidence": 0.3730563521385193,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_24.jpg",
+        "probs": [
+          0.35777750611305237,
+          0.3730563521385193,
+          0.056165844202041626,
+          0.06677968800067902,
+          0.13702937960624695,
+          0.008891548961400986,
+          0.0002997299889102578
+        ]
+      },
+      {
+        "move_index": 24,
+        "frame_index": 557,
+        "time_seconds": 18.566666666666666,
+        "limb": "leftfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "heel_hook",
+        "confidence": 0.500152051448822,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_25.jpg",
+        "probs": [
+          0.24056750535964966,
+          0.500152051448822,
+          0.04853668436408043,
+          0.05881056189537048,
+          0.13898809254169464,
+          0.012474565766751766,
+          0.0004705829778686166
+        ]
+      },
+      {
+        "move_index": 25,
+        "frame_index": 557,
+        "time_seconds": 18.566666666666666,
+        "limb": "rightfoot",
+        "from_hold": "hold_1",
+        "to_hold": "hold_0",
+        "hold_distance_px": 97.082439194738,
+        "type": "heel_hook",
+        "confidence": 0.49490779638290405,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_26.jpg",
+        "probs": [
+          0.2224036306142807,
+          0.49490779638290405,
+          0.04816000536084175,
+          0.06522025913000107,
+          0.15374483168125153,
+          0.015047174878418446,
+          0.0005163163878023624
+        ]
+      },
+      {
+        "move_index": 26,
+        "frame_index": 604,
+        "time_seconds": 20.133333333333333,
+        "limb": "leftfoot",
+        "from_hold": "hold_0",
+        "to_hold": "hold_1",
+        "hold_distance_px": 97.082439194738,
+        "type": "heel_hook",
+        "confidence": 0.41029092669487,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_27.jpg",
+        "probs": [
+          0.3184424936771393,
+          0.41029092669487,
+          0.054902225732803345,
+          0.06686205416917801,
+          0.13695715367794037,
+          0.012087948620319366,
+          0.0004572284815367311
+        ]
+      },
+      {
+        "move_index": 27,
+        "frame_index": 604,
+        "time_seconds": 20.133333333333333,
+        "limb": "rightfoot",
+        "from_hold": "hold_1",
+        "to_hold": "hold_0",
+        "hold_distance_px": 97.082439194738,
+        "type": "heel_hook",
+        "confidence": 0.49897849559783936,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_28.jpg",
+        "probs": [
+          0.2273845374584198,
+          0.49897849559783936,
+          0.049824830144643784,
+          0.0543983057141304,
+          0.15971393883228302,
+          0.009244917891919613,
+          0.00045498411054722965
+        ]
+      },
+      {
+        "move_index": 28,
+        "frame_index": 856,
+        "time_seconds": 28.533333333333335,
+        "limb": "righthand",
+        "from_hold": "hold_2_0",
+        "to_hold": "hold_2_1",
+        "hold_distance_px": 61.326992425847855,
+        "type": "no_pose",
+        "confidence": 0.0,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_29.jpg",
+        "probs": [
+          0.0
+        ]
+      },
+      {
+        "move_index": 29,
+        "frame_index": 857,
+        "time_seconds": 28.566666666666666,
+        "limb": "lefthand",
+        "from_hold": "hold_4",
+        "to_hold": "hold_2_1",
+        "hold_distance_px": 69.77822009767804,
+        "type": "no_pose",
+        "confidence": 0.0,
+        "snapshot_path": "batch_output\\video_001_ruclimbs_3431509674791884588_44924522021_2024-08-10\\moves\\move_30.jpg",
+        "probs": [
+          0.0
+        ]
+      }
+    ]
+  },
+  "route_grade": "V7",
+  "climber_height": 70.0,
+  "climber_wingspan": 70.0,
+  "climber_skill": "advanced",
+  "wall_angle": -18.0,
+  "gym_name": "",
+  "video_path": "my_videos\\ruclimbs_3431509674791884588_44924522021_2024-08-10.mp4",
+  "notes": ""
+}

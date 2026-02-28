@@ -1,357 +1,260 @@
 #!/usr/bin/env python3
-# split_grouped_holds.py
+# split_grouped_holds_improved.py
 #
-# Automatically detect and split holds that were incorrectly grouped together
+# IMPROVED: More conservative splitting with better heuristics
+# Only splits holds that are CLEARLY multiple holds grouped together
 
 import cv2
 import numpy as np
 import json
 from pathlib import Path
-from typing import List, Tuple, Dict
+from typing import Dict, List, Tuple
+from scipy.spatial import distance
+from sklearn.cluster import DBSCAN
 
-def analyze_hold_for_split(contour: np.ndarray, mask: np.ndarray, video_path: str = None) -> Tuple[bool, List[Tuple[int, int]]]:
+
+def should_split_hold(contour: np.ndarray, mask: np.ndarray) -> bool:
     """
-    Analyze a hold contour to determine if it should be split.
-    Uses multiple video frames to avoid climber occlusion.
-    CONSERVATIVE: Only splits obvious cases of multiple holds grouped together.
+    Determine if a hold should be split based on multiple factors.
     
-    Returns:
-        should_split: Whether this hold should be split
-        centers: List of center points if splitting
+    More conservative approach - only split when confident it's multiple holds.
     """
+    area = cv2.contourArea(contour)
+    
+    # Don't split small holds (< 500px)
+    if area < 500:
+        return False
+    
+    # Calculate aspect ratio
+    rect = cv2.minAreaRect(contour)
+    width, height = rect[1]
+    if width == 0 or height == 0:
+        return False
+    
+    aspect_ratio = max(width, height) / min(width, height)
+    
+    # Calculate solidity (how "filled" the shape is)
+    hull = cv2.convexHull(contour)
+    hull_area = cv2.contourArea(hull)
+    solidity = area / hull_area if hull_area > 0 else 1.0
+    
+    # Calculate compactness (how circular)
+    perimeter = cv2.arcLength(contour, True)
+    compactness = (4 * np.pi * area) / (perimeter ** 2) if perimeter > 0 else 0
+    
     # Get bounding box
     x, y, w, h = cv2.boundingRect(contour)
+    bbox_area = w * h
+    extent = area / bbox_area if bbox_area > 0 else 0
     
-    # Don't split very small holds
-    area = cv2.contourArea(contour)
-    if area < 500:  # Reduced from 800 to catch smaller grouped holds
-        return False, []
+    # SPLITTING CRITERIA (must meet MULTIPLE conditions):
     
-    # Removed aspect ratio filter - grouped holds can be any shape
+    # 1. Very elongated AND low solidity (likely multiple holds in a line)
+    if aspect_ratio > 3.5 and solidity < 0.75:
+        return True
     
-    # Extract the region
-    roi_mask = mask[y:y+h, x:x+w]
+    # 2. Large, irregular shape with low compactness and solidity
+    if area > 2000 and solidity < 0.65 and compactness < 0.4:
+        return True
     
-    # If we have video, sample multiple frames to get better mask
-    if video_path and Path(video_path).exists():
-        cap = cv2.VideoCapture(video_path)
-        if cap.isOpened():
-            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            
-            # Sample 5 different frames
-            frame_indices = np.linspace(int(total_frames * 0.2), int(total_frames * 0.8), 5, dtype=int)
-            
-            combined_roi = np.zeros_like(roi_mask)
-            
-            for idx in frame_indices:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
-                ret, frame = cap.read()
-                if ret:
-                    # Extract same ROI from this frame
-                    frame_roi = frame[y:y+h, x:x+w]
-                    
-                    # Simple thresholding to detect hold (not climber)
-                    frame_gray = cv2.cvtColor(frame_roi, cv2.COLOR_BGR2GRAY)
-                    _, frame_thresh = cv2.threshold(frame_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                    
-                    # Combine with mask
-                    combined_roi = cv2.bitwise_or(combined_roi, cv2.bitwise_and(roi_mask, frame_thresh))
-            
-            cap.release()
-            
-            if combined_roi.sum() > 0:
-                roi_mask = combined_roi
+    # 3. Very large with multiple clear gaps
+    if area > 3000 and solidity < 0.70:
+        return True
     
-    # Use distance transform to find local maxima (hold centers)
-    dist_transform = cv2.distanceTransform(roi_mask, cv2.DIST_L2, 5)
+    # 4. Extremely elongated (likely wrongly merged)
+    if aspect_ratio > 5.0:
+        return True
     
-    # Normalize
-    if dist_transform.max() > 0:
-        dist_norm = (dist_transform / dist_transform.max() * 255).astype(np.uint8)
-    else:
-        return False, []
-    
-    # Use 60% threshold to find more peaks (less conservative)
-    threshold = 0.60 * dist_norm.max()  # Reduced from 0.75
-    _, peaks = cv2.threshold(dist_norm, threshold, 255, cv2.THRESH_BINARY)
-    
-    # Apply morphology to clean peaks - smaller kernel to preserve peaks
-    kernel = np.ones((5, 5), np.uint8)  # Smaller kernel (was 7x7)
-    peaks = cv2.morphologyEx(peaks, cv2.MORPH_OPEN, kernel)
-    
-    # Find connected components in peaks
-    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(peaks, connectivity=8)
-    
-    # Need at least 2 peaks (excluding background)
-    num_peaks = num_labels - 1
-    
-    if num_peaks < 2:
-        return False, []
-    
-    # Get peak centers (in original image coordinates)
-    centers = []
-    for i in range(1, num_labels):  # Skip background (0)
-        # Only include peaks with reasonable size
-        area = stats[i, cv2.CC_STAT_AREA]
-        if area < 20:  # Too small, noise
-            continue
-            
-        cx, cy = centroids[i]
-        # Convert to original image coordinates
-        centers.append((int(x + cx), int(y + cy)))
-    
-    # Need at least 2 valid centers
-    if len(centers) < 2:
-        return False, []
-    
-    # Check separation - reduced to catch closer grouped holds
-    min_separation = 35  # Reduced from 50
-    
-    max_dist = 0
-    valid_pairs = 0
-    
-    for i in range(len(centers)):
-        for j in range(i+1, len(centers)):
-            dist = np.linalg.norm(np.array(centers[i]) - np.array(centers[j]))
-            max_dist = max(max_dist, dist)
-            if dist > min_separation:
-                valid_pairs += 1
-    
-    # Split if we have reasonably separated centers
-    if max_dist > min_separation and valid_pairs > 0:
-        # Allow up to 4 holds per group
-        if len(centers) > 4:  # Was 3
-            return False, []
-        return True, centers
-    
-    return False, []
+    # Otherwise, DON'T split
+    return False
 
 
-def split_hold(
-    contour: np.ndarray,
+def find_split_candidates_watershed(
     mask: np.ndarray,
-    centers: List[Tuple[int, int]],
-    original_id: str
-) -> List[Dict]:
+    contour: np.ndarray,
+    min_separation: int = 40
+) -> List[Tuple[int, int]]:
     """
-    Split a grouped hold into multiple holds using watershed algorithm.
-    
-    Returns:
-        List of new hold dictionaries with ids and positions
+    Use watershed algorithm to find split points.
+    More robust than simple erosion.
     """
     # Get bounding box
     x, y, w, h = cv2.boundingRect(contour)
     
     # Extract region
-    roi_mask = mask[y:y+h, x:x+w]
+    region_mask = np.zeros_like(mask)
+    cv2.drawContours(region_mask, [contour], -1, 255, -1)
+    region_mask = region_mask[y:y+h, x:x+w]
     
-    # Create marker image for watershed
-    markers = np.zeros_like(roi_mask, dtype=np.int32)
+    if region_mask.size == 0:
+        return []
     
-    # Mark each center with a different label
-    for i, (cx, cy) in enumerate(centers):
-        # Convert to ROI coordinates
-        roi_x = cx - x
-        roi_y = cy - y
-        
-        # Mark a small region around each center
-        cv2.circle(markers, (roi_x, roi_y), 5, i+1, -1)
+    # Distance transform
+    dist_transform = cv2.distanceTransform(region_mask, cv2.DIST_L2, 5)
     
-    # Create 3-channel image for watershed
-    roi_3ch = cv2.cvtColor(roi_mask, cv2.COLOR_GRAY2BGR)
+    # Find local maxima (peaks)
+    kernel = np.ones((min_separation//2, min_separation//2), np.uint8)
+    local_max = cv2.dilate(dist_transform, kernel)
+    local_max = (dist_transform == local_max) & (dist_transform > min_separation/4)
     
-    # Apply watershed
-    cv2.watershed(roi_3ch, markers)
+    # Get peak coordinates
+    peak_coords = np.argwhere(local_max)
     
-    # Extract each region
-    new_holds = []
+    if len(peak_coords) < 2:
+        return []
     
-    for i in range(1, len(centers) + 1):
-        # Get mask for this region
-        region_mask = (markers == i).astype(np.uint8) * 255
-        
-        # Find contour for this region
-        contours, _ = cv2.findContours(region_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        if len(contours) == 0:
-            continue
-        
-        # Get largest contour
-        region_contour = max(contours, key=cv2.contourArea)
-        
-        # Convert back to original coordinates
-        region_contour = region_contour + np.array([x, y])
-        
-        # Get centroid
-        M = cv2.moments(region_contour)
-        if M["m00"] > 0:
-            cx = int(M["m10"] / M["m00"])
-            cy = int(M["m01"] / M["m00"])
-            
-            new_holds.append({
-                'id': f"{original_id}_split_{i}",
-                'position': [cx, cy],
-                'contour': region_contour
-            })
+    # Convert to absolute coordinates
+    centers = [(int(pt[1] + x), int(pt[0] + y)) for pt in peak_coords]
     
-    return new_holds
+    # Filter: peaks must be reasonably separated
+    filtered_centers = []
+    for i, c1 in enumerate(centers):
+        too_close = False
+        for j, c2 in enumerate(filtered_centers):
+            if distance.euclidean(c1, c2) < min_separation:
+                too_close = True
+                break
+        if not too_close:
+            filtered_centers.append(c1)
+    
+    return filtered_centers if len(filtered_centers) >= 2 else []
+
+
+def find_split_candidates_clustering(
+    mask: np.ndarray,
+    contour: np.ndarray,
+    min_separation: int = 40
+) -> List[Tuple[int, int]]:
+    """
+    Use DBSCAN clustering on contour points to find natural groupings.
+    """
+    # Get all points in the contour
+    points = contour.reshape(-1, 2)
+    
+    if len(points) < 20:
+        return []
+    
+    # Sample points for efficiency
+    if len(points) > 200:
+        indices = np.random.choice(len(points), 200, replace=False)
+        points = points[indices]
+    
+    # DBSCAN clustering
+    clustering = DBSCAN(eps=min_separation, min_samples=5).fit(points)
+    labels = clustering.labels_
+    
+    # Get centers of each cluster
+    unique_labels = set(labels)
+    if -1 in unique_labels:
+        unique_labels.remove(-1)  # Remove noise
+    
+    if len(unique_labels) < 2:
+        return []
+    
+    centers = []
+    for label in unique_labels:
+        cluster_points = points[labels == label]
+        center = cluster_points.mean(axis=0)
+        centers.append((int(center[0]), int(center[1])))
+    
+    return centers
+
+
+def split_hold_into_subholds(
+    mask: np.ndarray,
+    contour: np.ndarray,
+    centers: List[Tuple[int, int]]
+) -> List[np.ndarray]:
+    """
+    Split a hold into sub-holds using voronoi-like partitioning.
+    """
+    if len(centers) < 2:
+        return [contour]
+    
+    # Create a blank mask for each center
+    h, w = mask.shape
+    submasks = [np.zeros((h, w), dtype=np.uint8) for _ in centers]
+    
+    # For each pixel in the contour, assign to nearest center
+    x, y, cw, ch = cv2.boundingRect(contour)
+    
+    for py in range(y, y + ch):
+        for px in range(x, x + cw):
+            if cv2.pointPolygonTest(contour, (float(px), float(py)), False) >= 0:
+                # Find nearest center
+                distances = [distance.euclidean((px, py), c) for c in centers]
+                nearest = np.argmin(distances)
+                submasks[nearest][py, px] = 255
+    
+    # Find contours in each submask
+    subcontours = []
+    for submask in submasks:
+        contours, _ = cv2.findContours(submask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if contours:
+            # Take the largest contour
+            largest = max(contours, key=cv2.contourArea)
+            if cv2.contourArea(largest) > 100:  # Minimum size
+                subcontours.append(largest)
+    
+    return subcontours if len(subcontours) >= 2 else [contour]
 
 
 def split_grouped_holds(
-    holds_json_path: str = "output/hold_positions_auto.json",
-    mask_path: str = "output/hold_mask_composite.jpg",
-    debug_image_path: str = "output/holds_debug.jpg",
-    output_dir: str = "output",
-    video_path: str = None
-):
+    holds_json_path: str,
+    mask_path: str,
+    output_dir: str,
+    min_separation: int = 40,
+    debug: bool = True
+) -> Dict:
     """
-    Analyze holds and split any that were incorrectly grouped together.
+    IMPROVED split detection with conservative heuristics.
+    
+    Args:
+        holds_json_path: Path to hold_positions_auto.json
+        mask_path: Path to hold_mask_composite.jpg
+        output_dir: Output directory
+        min_separation: Minimum separation between hold centers (pixels)
+        debug: Whether to save debug images
+    
+    Returns:
+        Dictionary with split hold positions
     """
     print("\n" + "="*70)
-    print("HOLD SPLITTER - Detecting Grouped Holds")
+    print("IMPROVED HOLD SPLITTING")
     print("="*70)
     
-    # Load holds
+    # Load data
     with open(holds_json_path, 'r') as f:
-        holds = json.load(f)
+        original_holds = json.load(f)
     
-    print(f"Loaded {len(holds)} holds")
-    
-    # Load mask
     mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
     if mask is None:
-        print(f"❌ Error: Could not load mask from {mask_path}")
-        return
+        raise FileNotFoundError(f"Could not load mask: {mask_path}")
     
-    # Get clean frame from video if provided, otherwise use debug image
-    if video_path and Path(video_path).exists():
-        cap = cv2.VideoCapture(video_path)
-        if cap.isOpened():
-            # Get middle frame
-            total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            cap.set(cv2.CAP_PROP_POS_FRAMES, total // 2)
-            ret, clean_frame = cap.read()
-            cap.release()
-            
-            if not ret:
-                # Fallback to debug image
-                clean_frame = cv2.imread(debug_image_path)
-        else:
-            clean_frame = cv2.imread(debug_image_path)
+    # Load debug image if available
+    output_dir = Path(output_dir)
+    debug_image_path = output_dir / "holds_debug.jpg"
+    if debug_image_path.exists():
+        debug_img = cv2.imread(str(debug_image_path))
     else:
-        clean_frame = cv2.imread(debug_image_path)
+        debug_img = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
     
-    if clean_frame is None:
-        print(f"❌ Error: Could not load base image")
-        return
+    # Find all contours
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
-    # Find contours in mask - filter by size to get actual holds
-    all_contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    print(f"Found {len(contours)} contours in mask")
+    print(f"Original holds: {len(original_holds)}")
+    print(f"Minimum separation: {min_separation}px")
     
-    # Filter contours to only include holds (not noise)
-    MIN_HOLD_AREA = 200  # Match hold_detection.py
-    MAX_HOLD_AREA = 12000
-    
-    contours = []
-    for cnt in all_contours:
-        area = cv2.contourArea(cnt)
-        if MIN_HOLD_AREA <= area <= MAX_HOLD_AREA:
-            contours.append(cnt)
-    
-    print(f"Found {len(contours)} hold contours (filtered from {len(all_contours)} total contours)")
-    
-    # Analyze each hold contour for splitting
-    splits_needed = []
-    
-    for i, contour in enumerate(contours):
-        should_split, centers = analyze_hold_for_split(contour, mask, video_path)
-        
-        if should_split:
-            print(f"  Contour {i}: Should split into {len(centers)} holds")
-            splits_needed.append({
-                'contour': contour,
-                'centers': centers,
-                'index': i
-            })
-    
-    if len(splits_needed) == 0:
-        print("\n✅ No grouped holds detected - all holds look good!")
-        return
-    
-    print(f"\n🔍 Found {len(splits_needed)} grouped holds to split")
-    
-    # Create new holds dictionary
-    new_holds = {}
-    hold_counter = 0
-    
-    # Track which original holds we're replacing
-    replaced_contours = {s['index'] for s in splits_needed}
-    
-    # Add holds that don't need splitting
-    for hold_id, position in holds.items():
-        # Find corresponding contour
-        found = False
-        for i, contour in enumerate(contours):
-            M = cv2.moments(contour)
-            if M["m00"] > 0:
-                cx = int(M["m10"] / M["m00"])
-                cy = int(M["m01"] / M["m00"])
-                
-                # Check if this matches the hold position
-                dist = np.linalg.norm(np.array([cx, cy]) - np.array(position))
-                if dist < 20:  # Close enough
-                    if i not in replaced_contours:
-                        # Keep this hold
-                        new_holds[f"hold_{hold_counter}"] = position
-                        hold_counter += 1
-                    found = True
-                    break
-    
-    # Add split holds
-    for split_info in splits_needed:
-        original_id = f"temp_{split_info['index']}"
-        split_holds = split_hold(
-            split_info['contour'],
-            mask,
-            split_info['centers'],
-            original_id
-        )
-        
-        for new_hold in split_holds:
-            new_holds[f"hold_{hold_counter}"] = new_hold['position']
-            hold_counter += 1
-    
-    # Save new holds JSON
-    output_path = Path(output_dir)
-    new_holds_path = output_path / "hold_positions_auto_split.json"
-    
-    with open(new_holds_path, 'w') as f:
-        json.dump(new_holds, f, indent=2)
-    
-    # Create visualization with actual hold contours (NO BOXES)
-    vis = clean_frame.copy()
-    
-    # We need to recreate proper contours for all holds
-    # Strategy: Use the mask to find actual contours, then match to hold positions
-    
-    # Find all contours in the mask
-    all_contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    # Match contours to hold positions
+    # Match original holds to contours
     hold_contour_map = {}
-    
-    for hold_id, position in new_holds.items():
-        cx, cy = position
-        
-        # Find contour that contains or is closest to this point
+    for hold_id, (cx, cy) in original_holds.items():
         best_contour = None
         min_dist = float('inf')
         
-        for contour in all_contours:
-            # Check if point is inside contour
+        for contour in contours:
             dist = cv2.pointPolygonTest(contour, (float(cx), float(cy)), True)
-            
-            if dist >= -20:  # Inside or very close
+            if dist >= -20:
                 if abs(dist) < min_dist:
                     min_dist = abs(dist)
                     best_contour = contour
@@ -359,59 +262,117 @@ def split_grouped_holds(
         if best_contour is not None:
             hold_contour_map[hold_id] = best_contour
     
-    # Draw all holds with their actual contours
-    for hold_id, position in new_holds.items():
-        cx, cy = position
-        
-        # Draw contour (no boxes!)
-        if hold_id in hold_contour_map:
-            cv2.drawContours(vis, [hold_contour_map[hold_id]], -1, (0, 255, 0), 3)
-        
-        # Draw center point
-        cv2.circle(vis, (cx, cy), 10, (0, 255, 255), -1)
-        
-        # Draw label
-        cv2.putText(vis, hold_id, (cx + 15, cy - 15),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+    # Analyze and split holds
+    split_holds = {}
+    split_count = 0
+    kept_count = 0
     
-    vis_path = output_path / "holds_debug_split.jpg"
-    cv2.imwrite(str(vis_path), vis)
+    for hold_id, contour in hold_contour_map.items():
+        # Check if this hold should be split
+        if not should_split_hold(contour, mask):
+            # Keep as-is
+            cx, cy = original_holds[hold_id]
+            split_holds[hold_id] = [int(cx), int(cy)]
+            kept_count += 1
+            
+            if debug:
+                cv2.circle(debug_img, (int(cx), int(cy)), 8, (0, 255, 0), -1)
+                cv2.putText(debug_img, hold_id, (int(cx) + 15, int(cy)), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+            continue
+        
+        # Try to find split candidates
+        centers_watershed = find_split_candidates_watershed(mask, contour, min_separation)
+        centers_clustering = find_split_candidates_clustering(mask, contour, min_separation)
+        
+        # Use the method that found more centers (if any)
+        if len(centers_watershed) >= 2 or len(centers_clustering) >= 2:
+            if len(centers_watershed) >= len(centers_clustering):
+                centers = centers_watershed
+                method = "watershed"
+            else:
+                centers = centers_clustering
+                method = "clustering"
+            
+            print(f"\n{hold_id}: Splitting into {len(centers)} holds ({method})")
+            area = cv2.contourArea(contour)
+            print(f"  Area: {area:.0f}px")
+            
+            # Split the hold
+            subcontours = split_hold_into_subholds(mask, contour, centers)
+            
+            if len(subcontours) >= 2:
+                # Successfully split
+                for i, subcontour in enumerate(subcontours):
+                    new_id = f"{hold_id}_{i}"
+                    M = cv2.moments(subcontour)
+                    if M['m00'] > 0:
+                        cx = int(M['m10'] / M['m00'])
+                        cy = int(M['m01'] / M['m00'])
+                        split_holds[new_id] = [cx, cy]
+                        split_count += 1
+                        
+                        if debug:
+                            cv2.circle(debug_img, (cx, cy), 8, (0, 255, 255), -1)
+                            cv2.putText(debug_img, new_id, (cx + 15, cy),
+                                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
+            else:
+                # Splitting failed, keep original
+                cx, cy = original_holds[hold_id]
+                split_holds[hold_id] = [int(cx), int(cy)]
+                kept_count += 1
+        else:
+            # No split candidates found, keep original
+            cx, cy = original_holds[hold_id]
+            split_holds[hold_id] = [int(cx), int(cy)]
+            kept_count += 1
+            
+            if debug:
+                cv2.circle(debug_img, (int(cx), int(cy)), 8, (0, 255, 0), -1)
+                cv2.putText(debug_img, hold_id, (int(cx) + 15, int(cy)),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
     
-    print("\n" + "="*70)
-    print(f"✅ SPLIT COMPLETE")
+    # Save results
+    output_json = output_dir / "hold_positions_auto_split.json"
+    with open(output_json, 'w') as f:
+        json.dump(split_holds, f, indent=2)
+    
+    if debug:
+        debug_output = output_dir / "holds_debug_split_improved.jpg"
+        cv2.imwrite(str(debug_output), debug_img)
+        print(f"\n✅ Debug image: {debug_output}")
+    
+    print(f"\n✅ Split results: {output_json}")
+    print(f"   Original holds: {len(original_holds)}")
+    print(f"   Kept unchanged: {kept_count}")
+    print(f"   Split into: {split_count}")
+    print(f"   Total holds: {len(split_holds)}")
     print("="*70)
-    print(f"Original holds: {len(holds)}")
-    print(f"Split holds: {len(new_holds)}")
-    print(f"Net change: +{len(new_holds) - len(holds)} holds")
-    print(f"\nSaved to:")
-    print(f"  JSON: {new_holds_path}")
-    print(f"  Visualization: {vis_path}")
-    print("="*70)
     
-    return str(new_holds_path)
+    return split_holds
 
 
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="Split grouped holds")
-    parser.add_argument("--holds", default="output/hold_positions_auto.json", 
-                       help="Path to holds JSON")
-    parser.add_argument("--mask", default="output/hold_mask_composite.jpg",
-                       help="Path to hold mask")
-    parser.add_argument("--debug", default="output/holds_debug.jpg",
-                       help="Path to debug image")
-    parser.add_argument("--output", "-o", default="output",
+    parser = argparse.ArgumentParser(description="Improved hold splitting")
+    parser.add_argument("--holds", required=True,
+                       help="Path to hold_positions_auto.json")
+    parser.add_argument("--mask", required=True,
+                       help="Path to hold_mask_composite.jpg")
+    parser.add_argument("--output", required=True,
                        help="Output directory")
-    parser.add_argument("--video", "-v", default=None,
-                       help="Path to original video (for clean frame)")
+    parser.add_argument("--min-separation", type=int, default=40,
+                       help="Minimum separation between holds (pixels)")
+    parser.add_argument("--no-debug", action="store_true",
+                       help="Disable debug output")
     
     args = parser.parse_args()
     
     split_grouped_holds(
         holds_json_path=args.holds,
         mask_path=args.mask,
-        debug_image_path=args.debug,
         output_dir=args.output,
-        video_path=args.video
+        min_separation=args.min_separation,
+        debug=not args.no_debug
     )

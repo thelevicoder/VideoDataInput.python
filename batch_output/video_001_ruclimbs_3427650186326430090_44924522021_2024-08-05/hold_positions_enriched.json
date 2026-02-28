@@ -1,0 +1,67 @@
+{
+  "hold_0": {
+    "center": [
+      117,
+      441
+    ],
+    "class": "volume",
+    "confidence": 0.804266631603241,
+    "bbox": [
+      64,
+      384,
+      176,
+      496
+    ]
+  },
+  "hold_1": {
+    "center": [
+      139,
+      243
+    ],
+    "class": "crimp_or_foot",
+    "confidence": 0.5748083591461182,
+    "bbox": [
+      88,
+      163,
+      219,
+      280
+    ]
+  },
+  "hold_2": {
+    "center": [
+      301,
+      268
+    ],
+    "class": "unknown",
+    "confidence": 0.0,
+    "bbox": null
+  },
+  "hold_3": {
+    "center": [
+      192,
+      180
+    ],
+    "class": "volume",
+    "confidence": 0.5551352500915527,
+    "bbox": [
+      112,
+      128,
+      248,
+      260
+    ]
+  },
+  "hold_4": {
+    "center": [
+      198,
+      91
+    ],
+    "class": "crimp_or_foot",
+    "confidence": 0.9059568643569946,
+    "bbox": [
+      168,
+      56,
+      232,
+      125
+    ]
+  }
+}

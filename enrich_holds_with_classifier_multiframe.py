@@ -68,7 +68,7 @@ def load_video_frames(video_path: str, num_frames: int = 5) -> List[np.ndarray]:
             frames.append(frame)
 
     cap.release()
-    print(f"Loaded {len(frames)} frames from video")
+    print(f"[enrich] Loaded {len(frames)} frames from video")
     return frames
 
 
@@ -82,8 +82,6 @@ def get_best_crop_for_hold(
 ) -> Tuple[np.ndarray, list]:
     """
     Try cropping the hold from each frame, pick the one with most visible hold pixels.
-    Now returns a tight crop around the hold and tries to avoid frames
-    where the hold is occluded by a hand (using simple skin detection).
     """
     cx = int(round(cx))
     cy = int(round(cy))
@@ -96,7 +94,6 @@ def get_best_crop_for_hold(
     for frame in frames:
         h, w = frame.shape[:2]
 
-        # Base square around the center
         x1 = max(0, cx - half)
         y1 = max(0, cy - half)
         x2 = min(w, cx + half)
@@ -108,7 +105,6 @@ def get_best_crop_for_hold(
         crop_img = frame[y1:y2, x1:x2].copy()
         crop_mask = mask[y1:y2, x1:x2].copy()
 
-        # Connected components on the local mask
         num_labels, labels = cv2.connectedComponents(crop_mask)
 
         local_cx = cx - x1
@@ -127,20 +123,17 @@ def get_best_crop_for_hold(
         if hold_pixels == 0:
             continue
 
-        # Tight bounding box around the hold inside this base crop
         ys, xs = np.where(single_hold_mask > 0)
         min_x = xs.min()
         max_x = xs.max()
         min_y = ys.min()
         max_y = ys.max()
 
-        # Add some padding
         tight_x1 = max(0, min_x - pad)
         tight_y1 = max(0, min_y - pad)
         tight_x2 = min(crop_img.shape[1] - 1, max_x + pad)
         tight_y2 = min(crop_img.shape[0] - 1, max_y + pad)
 
-        # Enforce a minimum size
         min_side = 32
         if tight_x2 - tight_x1 + 1 < min_side:
             extra = (min_side - (tight_x2 - tight_x1 + 1)) // 2
@@ -151,58 +144,40 @@ def get_best_crop_for_hold(
             tight_y1 = max(0, tight_y1 - extra)
             tight_y2 = min(crop_img.shape[0] - 1, tight_y2 + extra)
 
-        # Final tight crop
         tight_crop_img = crop_img[tight_y1:tight_y2 + 1, tight_x1:tight_x2 + 1]
         tight_mask = single_hold_mask[tight_y1:tight_y2 + 1, tight_x1:tight_x2 + 1]
 
-        # Simple skin detection to find likely hand pixels over the hold
-        # Convert BGR to YCrCb which works well for skin thresholds
         ycrcb = cv2.cvtColor(tight_crop_img, cv2.COLOR_BGR2YCrCb)
-        y_channel, cr_channel, cb_channel = cv2.split(ycrcb)
-
-        # Very standard crude skin range in YCrCb
         lower = np.array([0, 133, 77], dtype=np.uint8)
         upper = np.array([255, 173, 127], dtype=np.uint8)
         skin_mask = cv2.inRange(ycrcb, lower, upper)
 
-        # Only care about skin inside the hold area
         skin_in_hold = cv2.bitwise_and(skin_mask, skin_mask, mask=tight_mask)
-
-        # Visible hold mask is hold minus skin
         visible_hold_mask = tight_mask.copy()
         visible_hold_mask[skin_in_hold > 0] = 0
 
         visible_pixels = np.count_nonzero(visible_hold_mask)
 
-        # If almost all the hold is covered by skin, treat as bad frame
         if visible_pixels < 0.2 * hold_pixels:
             continue
 
         gray = cv2.cvtColor(tight_crop_img, cv2.COLOR_BGR2GRAY)
         mean_brightness = np.mean(gray[visible_hold_mask > 0]) if visible_pixels > 0 else 0.0
 
-        # Score based on visible (non skin) hold pixels and brightness
         score = visible_pixels * (mean_brightness / 255.0)
 
         if score > best_score:
             best_score = score
             best_crop = tight_crop_img
 
-            # Map tight bbox back to full-frame coordinates
             full_x1 = x1 + tight_x1
             full_y1 = y1 + tight_y1
             full_x2 = x1 + tight_x2 + 1
             full_y2 = y1 + tight_y2 + 1
 
-            best_bbox = [
-                int(full_x1),
-                int(full_y1),
-                int(full_x2),
-                int(full_y2),
-            ]
+            best_bbox = [int(full_x1), int(full_y1), int(full_x2), int(full_y2)]
 
     return best_crop, best_bbox
-
 
 
 def classify_crop(model, tfm, crop: np.ndarray, device: torch.device):
@@ -218,39 +193,54 @@ def classify_crop(model, tfm, crop: np.ndarray, device: torch.device):
     return int(idx.item()), float(conf.item())
 
 
-def main(video_path: str):
-
+def main(video_path: str, output_dir: str = "output"):
+    """
+    Main hold classification function.
+    
+    Args:
+        video_path: Path to video file
+        output_dir: Directory containing hold detection outputs
+    """
     project_root = Path(".")
+    output_path = Path(output_dir)
 
-    holds_json = project_root / "output" / "hold_positions_auto.json"
-    composite_mask = project_root / "output" / "hold_mask_composite.jpg"
+    # Look for holds JSON - try split version first
+    holds_json = output_path / "hold_positions_auto_split.json"
+    if not holds_json.exists():
+        holds_json = output_path / "hold_positions_auto.json"
+    
+    composite_mask = output_path / "hold_mask_composite.jpg"
     model_path = project_root / "models" / "hold_classifier_resnet18.pt"
     labels_path = project_root / "models" / "hold_class_labels.json"
 
     if not holds_json.exists():
-        raise FileNotFoundError(f"Holds JSON not found: {holds_json}")
+        print(f"[enrich] Holds JSON not found: {holds_json}")
+        return
     if not Path(video_path).exists():
-        raise FileNotFoundError(f"Video not found: {video_path}")
+        print(f"[enrich] Video not found: {video_path}")
+        return
     if not composite_mask.exists():
-        raise FileNotFoundError(f"Composite mask not found: {composite_mask}")
+        print(f"[enrich] Composite mask not found: {composite_mask}")
+        return
+    if not model_path.exists():
+        print(f"[enrich] Model not found: {model_path}")
+        return
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+    print(f"[enrich] Using device: {device}")
 
     holds = load_holds(holds_json)
     model, classes, tfm = build_model(model_path, labels_path, device)
-    print("Classifier classes:", classes)
+    print(f"[enrich] Classifier classes: {classes}")
 
-    # Load multiple frames from video
     frames = load_video_frames(video_path, num_frames=5)
     
-    # Load composite mask
     mask = cv2.imread(str(composite_mask), cv2.IMREAD_GRAYSCALE)
     if mask is None:
-        raise RuntimeError(f"Could not read composite mask")
+        print(f"[enrich] Could not read composite mask")
+        return
 
-    # Debug output
-    debug_dir = project_root / "debug_patches"
+    debug_dir = output_path / "debug_patches"
     debug_dir.mkdir(exist_ok=True)
 
     enriched: Dict[str, Dict[str, Any]] = {}
@@ -258,9 +248,7 @@ def main(video_path: str):
     for cid, center in holds.items():
         cx, cy = center
         
-        # Get best crop from multiple frames
         crop, bbox = get_best_crop_for_hold(frames, mask, cx, cy, base_size=160)
-
         
         if crop is None:
             enriched[cid] = {
@@ -271,11 +259,9 @@ def main(video_path: str):
             }
             continue
 
-        # Save debug crop
         debug_path = debug_dir / f"patch_{cid}.jpg"
         cv2.imwrite(str(debug_path), crop)
 
-        # Classify
         cls_idx, conf = classify_crop(model, tfm, crop, device)
         cls_name = classes[cls_idx]
 
@@ -286,90 +272,18 @@ def main(video_path: str):
             "bbox": bbox,
         }
         
-        print(f"{cid}: {cls_name} ({conf:.3f})")
+        print(f"[enrich] {cid}: {cls_name} ({conf:.3f})")
 
-    # Save results
-    out_json = project_root / "output" / "hold_positions_enriched.json"
+    out_json = output_path / "hold_positions_enriched.json"
     with out_json.open("w", encoding="utf8") as f:
         json.dump(enriched, f, indent=2)
-    print(f"\n[enrich] Saved to {out_json}")
-
-    # Create labeled hold gallery
-    create_hold_gallery(debug_dir, enriched, project_root / "output" / "holds_tagged")
-
-
-def create_hold_gallery(debug_dir: Path, enriched: Dict, output_dir: Path):
-    import shutil
-    import matplotlib.pyplot as plt
-    from matplotlib.patches import Rectangle
-
-    # Clear output directory completely
-    if output_dir.exists():
-        shutil.rmtree(output_dir)
-    output_dir.mkdir(exist_ok=True)
-
-    print("\n[gallery] Creating labeled hold images...")
-
-    
-    for cid, data in enriched.items():
-        patch_path = debug_dir / f"patch_{cid}.jpg"
-        if not patch_path.exists():
-            continue
-        
-        img = cv2.imread(str(patch_path))
-        if img is None:
-            continue
-        
-        # Convert BGR to RGB for matplotlib
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        
-        cls_name = data.get("class", "unknown")
-        conf = data.get("confidence", 0.0)
-        
-        # Create figure
-        fig, ax = plt.subplots(figsize=(8, 8))
-        ax.imshow(img_rgb)
-        ax.axis('off')
-        
-        # Add label with class name and confidence
-        label_text = f"{cid}\n{cls_name}\nConfidence: {conf:.2f}"
-        
-        # Color code by confidence
-        if conf > 0.7:
-            color = 'green'
-        elif conf > 0.4:
-            color = 'orange'
-        else:
-            color = 'red'
-        
-        # Add text box at top
-        ax.text(
-            0.5, 0.98, label_text,
-            transform=ax.transAxes,
-            fontsize=14,
-            fontweight='bold',
-            verticalalignment='top',
-            horizontalalignment='center',
-            bbox=dict(boxstyle='round', facecolor=color, alpha=0.8, edgecolor='black', linewidth=2),
-            color='white'
-        )
-        
-        # Save
-        out_path = output_dir / f"{cid}_{cls_name}.jpg"
-        plt.tight_layout()
-        plt.savefig(out_path, dpi=150, bbox_inches='tight')
-        plt.close()
-        
-        print(f"  Saved: {out_path.name}")
-    
-    print(f"\n[gallery] All labeled holds saved to {output_dir}")
+    print(f"[enrich] ✅ Saved to {out_json}")
 
 
 if __name__ == "__main__":
     import argparse
-
     parser = argparse.ArgumentParser()
     parser.add_argument("video_path")
+    parser.add_argument("--output", default="output")
     args = parser.parse_args()
-
-    main(args.video_path)
+    main(args.video_path, args.output)

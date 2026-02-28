@@ -1,0 +1,82 @@
+{
+  "climb_data": {
+    "video_path": "my_videos\\ruclimbs_3434439808385662124_44924522021_2024-08-14.mp4",
+    "holds_json": "batch_output\\temp_ruclimbs_3434439808385662124_44924522021_2024-08-14_0\\hold_positions_for_moves.json",
+    "finish_hold": "hold_3",
+    "fps": 30.0,
+    "moves": [
+      {
+        "move_index": 0,
+        "frame_index": 172,
+        "time_seconds": 5.733333333333333,
+        "limb": "leftfoot",
+        "from_hold": "hold_1",
+        "to_hold": "hold_2",
+        "hold_distance_px": 105.1094667477673,
+        "type": "heel_hook",
+        "confidence": 0.4558184742927551,
+        "snapshot_path": "batch_output\\temp_ruclimbs_3434439808385662124_44924522021_2024-08-14_0\\moves\\move_01.jpg",
+        "probs": [
+          0.177842915058136,
+          0.4558184742927551,
+          0.06536369025707245,
+          0.05868712440133095,
+          0.21127711236476898,
+          0.030383454635739326,
+          0.0006272029713727534
+        ]
+      },
+      {
+        "move_index": 1,
+        "frame_index": 196,
+        "time_seconds": 6.533333333333333,
+        "limb": "leftfoot",
+        "from_hold": "hold_1",
+        "to_hold": "hold_2",
+        "hold_distance_px": 105.1094667477673,
+        "type": "reach",
+        "confidence": 0.28952914476394653,
+        "snapshot_path": "batch_output\\temp_ruclimbs_3434439808385662124_44924522021_2024-08-14_0\\moves\\move_02.jpg",
+        "probs": [
+          0.28952914476394653,
+          0.27309519052505493,
+          0.060261815786361694,
+          0.06839193403720856,
+          0.28917253017425537,
+          0.019192125648260117,
+          0.0003572857240214944
+        ]
+      },
+      {
+        "move_index": 2,
+        "frame_index": 206,
+        "time_seconds": 6.866666666666666,
+        "limb": "rightfoot",
+        "from_hold": "hold_1",
+        "to_hold": "hold_2",
+        "hold_distance_px": 105.1094667477673,
+        "type": "reach",
+        "confidence": 0.380470335483551,
+        "snapshot_path": "batch_output\\temp_ruclimbs_3434439808385662124_44924522021_2024-08-14_0\\moves\\move_03.jpg",
+        "probs": [
+          0.380470335483551,
+          0.1710660457611084,
+          0.05469214916229248,
+          0.06404229253530502,
+          0.3170373737812042,
+          0.01238348986953497,
+          0.0003082788025494665
+        ]
+      }
+    ],
+    "output_dir": "batch_output\\video_001_ruclimbs_3434439808385662124_44924522021_2024-08-14"
+  },
+  "route_grade": "V7",
+  "climber_height": 70.0,
+  "climber_wingspan": 70.0,
+  "climber_skill": "advanced",
+  "wall_angle": 18.0,
+  "gym_name": "",
+  "video_path": "my_videos\\ruclimbs_3434439808385662124_44924522021_2024-08-14.mp4",
+  "notes": ""
+}

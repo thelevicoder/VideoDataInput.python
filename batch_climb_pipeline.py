@@ -352,6 +352,32 @@ def process_single_video(
     
     if selected_colors is None:
         print("⚠ Skipping video (no colors selected)")
+        
+        # Archive skipped video
+        try:
+            import shutil
+            
+            video_folder = video_path.parent
+            skipped_folder = video_folder / "skipped"
+            skipped_folder.mkdir(exist_ok=True)
+            
+            destination = skipped_folder / video_path.name
+            
+            # Handle duplicate names
+            if destination.exists():
+                base = destination.stem
+                ext = destination.suffix
+                counter = 1
+                while destination.exists():
+                    destination = skipped_folder / f"{base}_{counter}{ext}"
+                    counter += 1
+            
+            shutil.move(str(video_path), str(destination))
+            print(f"📦 Video moved to skipped folder: {destination}")
+            
+        except Exception as e:
+            print(f"⚠ Failed to archive video: {e}")
+        
         return False
     
     # Step 2: Get metadata
@@ -378,28 +404,44 @@ def process_single_video(
         traceback.print_exc()
         return False
     
-    # Step 3.5: Split grouped holds
+    # Step 3.5: Split grouped holds (OPTIONAL)
     if SPLITTER_AVAILABLE:
-        print("\n[3.5/6] Checking for Grouped Holds...")
-        try:
-            split_path = split_grouped_holds(
-                holds_json_path=str(video_output / "hold_positions_auto.json"),
-                mask_path=str(video_output / "hold_mask_composite.jpg"),
-                debug_image_path=str(video_output / "holds_debug.jpg"),
-                output_dir=str(video_output),
-                video_path=str(video_path)
-            )
-            
-            # Use split version if created
-            if split_path:
-                holds_json = Path(split_path)
-                with open(holds_json, 'r') as f:
-                    hold_positions = json.load(f)
-                print(f"✅ Using split holds: {len(hold_positions)} holds")
-            else:
+        print("\n[3.5/6] Hold Splitting")
+        print("="*70)
+        print("The system detected holds but some may be grouped together.")
+        print("Splitting attempts to separate holds that were detected as one.")
+        print("")
+        print("RECOMMENDATION: Skip splitting unless holds are obviously grouped")
+        print("  - Splitting can sometimes create false divisions")
+        print("  - The original detection is usually better")
+        print("="*70)
+        
+        split_choice = input("\nAttempt to split grouped holds? (y/N): ").strip().lower()
+        
+        if split_choice == 'y':
+            try:
+                split_path = split_grouped_holds(
+                    holds_json_path=str(video_output / "hold_positions_auto.json"),
+                    mask_path=str(video_output / "hold_mask_composite.jpg"),
+                    debug_image_path=str(video_output / "holds_debug.jpg"),
+                    output_dir=str(video_output),
+                    video_path=str(video_path)
+                )
+                
+                # Use split version if created
+                if split_path:
+                    holds_json = Path(split_path)
+                    with open(holds_json, 'r') as f:
+                        hold_positions = json.load(f)
+                    print(f"✅ Using split holds: {len(hold_positions)} holds")
+                else:
+                    holds_json = video_output / "hold_positions_auto.json"
+                    print("✅ Splitting complete - using original holds")
+            except Exception as e:
+                print(f"⚠ Hold splitting failed: {e}")
                 holds_json = video_output / "hold_positions_auto.json"
-        except Exception as e:
-            print(f"⚠ Hold splitting failed: {e}")
+        else:
+            print("✅ Skipping hold splitting - using original detection")
             holds_json = video_output / "hold_positions_auto.json"
     else:
         holds_json = video_output / "hold_positions_auto.json"
@@ -423,38 +465,68 @@ def process_single_video(
     print("\n[5/7] Classifying Holds...")
     try:
         # Check if classifier exists
-        classifier_path = Path("move_classifier/hold_classifier.h5")
+        classifier_path = Path("models/hold_classifier_resnet18.pt")
         if classifier_path.exists():
             # Run hold classification
-            import sys
-            old_argv = sys.argv
-            sys.argv = [
-                'enrich',
-                '--video', str(video_path),
-                '--holds', str(holds_json),
-                '--output', str(video_output)
-            ]
+            from enrich_holds_with_classifier_multiframe import main as enrich_holds
+            enrich_holds(str(video_path), str(video_output))
             
-            try:
-                from enrich_holds_with_classifier_multiframe import main as enrich_holds
-                enrich_holds()
+            # Use enriched holds if created
+            enriched_holds_path = video_output / "hold_positions_enriched.json"
+            if enriched_holds_path.exists():
+                print(f"✓ Holds classified and enriched")
                 
-                # Use enriched holds if created
-                enriched_holds_path = video_output / "hold_positions_enriched.json"
-                if enriched_holds_path.exists():
-                    holds_json = enriched_holds_path
-                    print(f"✓ Holds classified and enriched")
-                else:
-                    print("⚠ Enrichment ran but no output - using original holds")
-            finally:
-                sys.argv = old_argv
+                # Step 5.5: Analyze hold quality
+                print("\n[5.5/7] Analyzing Hold Quality...")
+                try:
+                    from analyze_hold_quality import analyze_all_holds
+                    
+                    # Get reference image
+                    ref_image = video_output / "holds_debug_split.jpg"
+                    if not ref_image.exists():
+                        ref_image = video_output / "holds_debug.jpg"
+                    
+                    # Analyze quality
+                    quality_results = analyze_all_holds(
+                        enriched_holds_path=str(enriched_holds_path),
+                        mask_path=str(video_output / "hold_mask_composite.jpg"),
+                        image_path=str(ref_image),
+                        wall_angle=metadata['wall_angle'],
+                        output_path=str(video_output / "hold_positions_with_quality.json")
+                    )
+                    
+                    print(f"✓ Hold quality analysis complete")
+                    
+                    # Use quality-enriched holds for training export
+                    enriched_holds = quality_results
+                    
+                except Exception as e:
+                    print(f"⚠ Hold quality analysis failed: {e}")
+                    # Fall back to regular enriched holds
+                    with open(enriched_holds_path, 'r') as f:
+                        enriched_holds = json.load(f)
+                
+                # Convert enriched format to simple format for move detector
+                simple_holds = {hold_id: data['center'] for hold_id, data in enriched_holds.items()}
+                
+                # Save simple version for move detector
+                simple_holds_path = video_output / "hold_positions_for_moves.json"
+                with open(simple_holds_path, 'w') as f:
+                    json.dump(simple_holds, f, indent=2)
+                
+                holds_json = simple_holds_path
+            else:
+                print("⚠ Enrichment ran but no output - using original holds")
+                enriched_holds = None
         else:
             print("⚠ Hold classifier not found - skipping hold classification")
             print(f"   Looking for: {classifier_path.absolute()}")
+            enriched_holds = None
     except Exception as e:
         print(f"⚠ Hold classification failed (non-critical): {e}")
         import traceback
         traceback.print_exc()
+        enriched_holds = None
     
     # Step 6: Export to training format
     print("\n[6/7] Exporting Training Data...")
@@ -463,17 +535,43 @@ def process_single_video(
         with open(climb_data_path, 'r') as f:
             climb_data = json.load(f)
         
+        # Use enriched holds if available (set in Step 5)
+        if enriched_holds is None:
+            # Load from file or create dummy
+            enriched_holds_path = video_output / "hold_positions_with_quality.json"
+            if not enriched_holds_path.exists():
+                enriched_holds_path = video_output / "hold_positions_enriched.json"
+            
+            if enriched_holds_path.exists():
+                with open(enriched_holds_path, 'r') as f:
+                    enriched_holds = json.load(f)
+            else:
+                # Use simple holds and add dummy enrichment
+                with open(holds_json, 'r') as f:
+                    simple_holds = json.load(f)
+                enriched_holds = {
+                    hold_id: {
+                        "center": pos,
+                        "class": "unknown",
+                        "confidence": 0.0,
+                        "bbox": None
+                    }
+                    for hold_id, pos in simple_holds.items()
+                }
+        
         # Convert to training format
         training_entry = convert_to_training_format(
             climb_data=climb_data,
-            grade=metadata['grade'],
+            enriched_holds=enriched_holds,
+            route_grade=metadata['grade'],
             climber_height=config.climber_height,
             climber_wingspan=config.climber_wingspan,
-            climber_skill=config.climber_skill,
             wall_angle=metadata['wall_angle'],
             gym_name=metadata['gym_name'],
-            video_path=str(video_path),
-            notes=metadata['notes']
+            additional_metadata={
+                'climber_skill_level': config.climber_skill,
+                'notes': metadata['notes']
+            }
         )
         
         # Save to database
@@ -483,8 +581,10 @@ def process_single_video(
         print(f"✓ Training data saved to {db_path}")
     except Exception as e:
         print(f"⚠ Training export failed (non-critical): {e}")
+        import traceback
+        traceback.print_exc()
     
-    # Step 7: Summary
+    # Step 7: Summary and Archive
     print("\n[7/7] Video Processing Complete!")
     print("="*70)
     print(f"✅ Output: {video_output}")
@@ -492,7 +592,36 @@ def process_single_video(
     print(f"✅ Holds: {len(hold_positions)}")
     print("="*70)
     
+    # Archive the video (move to processed folder)
+    try:
+        import shutil
+        
+        # Create processed folder next to video folder
+        video_folder = video_path.parent
+        processed_folder = video_folder / "processed"
+        processed_folder.mkdir(exist_ok=True)
+        
+        # Move video to processed folder
+        destination = processed_folder / video_path.name
+        
+        # If destination exists, add number suffix
+        if destination.exists():
+            base = destination.stem
+            ext = destination.suffix
+            counter = 1
+            while destination.exists():
+                destination = processed_folder / f"{base}_{counter}{ext}"
+                counter += 1
+        
+        shutil.move(str(video_path), str(destination))
+        print(f"\n📦 Video archived to: {destination}")
+        
+    except Exception as e:
+        print(f"\n⚠ Failed to archive video: {e}")
+        print(f"   Video remains at: {video_path}")
+    
     return True
+
 
 
 def batch_process_videos(video_folder: str, output_folder: str = "batch_output"):
@@ -562,7 +691,24 @@ def batch_process_videos(video_folder: str, output_folder: str = "batch_output")
     print(f"⚠ Skipped: {skipped}")
     print(f"\n📁 Output location: {output_base.absolute()}")
     print(f"📊 Training database: climb_database/")
+    
+    # Show archived video locations
+    processed_folder = video_folder / "processed"
+    skipped_folder = video_folder / "skipped"
+    
+    if processed_folder.exists():
+        processed_count = len(list(processed_folder.glob("*.*")))
+        print(f"\n📦 Processed videos archived to: {processed_folder}")
+        print(f"   ({processed_count} videos)")
+    
+    if skipped_folder.exists():
+        skipped_count = len(list(skipped_folder.glob("*.*")))
+        print(f"⏭️  Skipped videos archived to: {skipped_folder}")
+        print(f"   ({skipped_count} videos)")
+    
+    print("\n💡 To restore videos: python restore_videos.py --videos [folder]")
     print("="*70)
+
 
 
 if __name__ == "__main__":
